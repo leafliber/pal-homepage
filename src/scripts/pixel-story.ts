@@ -4,7 +4,7 @@ const introSequence = [
   { phase: "blank", at: 0 },
   { phase: "wake", at: 450 },
   { phase: "look", at: 1350 },
-  { phase: "signal", at: 2250 },
+  { phase: "landing", at: 2250 },
   { phase: "build", at: 3100 },
   { phase: "meet", at: 6800 },
   { phase: "ready", at: 8600 },

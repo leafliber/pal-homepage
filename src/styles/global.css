@@ -571,6 +571,11 @@ html[data-journey="ready"] .scene.is-leaving {
   pointer-events: none;
   z-index: 1;
 }
+/* The outgoing world may finish its exit, but only the active chapter owns
+   the bottom-right instruction. Never layer two labels during an interruption. */
+html[data-journey="ready"] .scene:not(.is-active) .scene-bottom {
+  visibility: hidden;
+}
 html[data-journey="ready"] .scene.is-leaving .scene-inner {
   animation: scene-out 0.4s steps(7, end) both;
 }

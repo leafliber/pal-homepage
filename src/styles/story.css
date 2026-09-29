@@ -50,15 +50,6 @@ html[data-journey="ready"] .journey-traveler {
   opacity: 0;
   filter: none;
 }
-.traveler-signal {
-  position: absolute;
-  left: 43%;
-  top: 83%;
-  width: 8%;
-  aspect-ratio: 1;
-  background: var(--accent);
-  opacity: 0;
-}
 @keyframes traveler-breathe {
   0%,
   75%,
@@ -124,21 +115,15 @@ html[data-journey="ready"] .journey-traveler {
     clip-path: inset(0);
   }
 }
-@keyframes traveler-send {
+@keyframes traveler-land {
   0% {
-    opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-9px);
   }
-  25% {
-    opacity: 1;
-  }
-  80% {
-    opacity: 1;
-    transform: translateY(24px);
+  60% {
+    transform: translateY(2px) scaleY(0.96);
   }
   100% {
-    opacity: 0;
-    transform: translateY(28px);
+    transform: translateY(0) scaleY(1);
   }
 }
 @keyframes traveler-greet {
@@ -257,8 +242,7 @@ html[data-intro-phase="blank"]
 html[data-intro="playing"]:is(
     [data-intro-phase="blank"],
     [data-intro-phase="wake"],
-    [data-intro-phase="look"],
-    [data-intro-phase="signal"]
+    [data-intro-phase="look"]
   )
   .traveler-shell,
 html[data-intro="playing"]:is(
@@ -275,22 +259,23 @@ html[data-intro-phase="wake"] .traveler-eyes {
   animation: traveler-wake 900ms steps(6, end) both;
 }
 html[data-intro-phase="look"] .traveler-eyes {
-  animation: traveler-look 900ms steps(4, end) both;
+  animation: traveler-look 900ms cubic-bezier(0.45, 0, 0.2, 1) both;
 }
 html[data-intro-phase="look"] .traveler-thought {
   opacity: 1;
 }
-html[data-intro-phase="signal"] .traveler-signal {
-  animation: traveler-send 900ms steps(7, end) both;
+html[data-intro-phase="landing"] .traveler-sprite {
+  transform-origin: center bottom;
+  animation: traveler-land 850ms cubic-bezier(0.33, 0, 0.2, 1) both;
 }
-html[data-intro-phase="build"] .traveler-shell {
-  animation: traveler-form 700ms steps(8, end) both;
+html[data-intro-phase="landing"] .traveler-shell {
+  animation: traveler-form 650ms steps(8, end) both;
 }
 html[data-intro-phase="meet"] .traveler-sprite {
   animation: traveler-greet 1600ms steps(8, end) both;
 }
 html[data-intro="playing"]:is(
-    [data-intro-phase="signal"],
+    [data-intro-phase="landing"],
     [data-intro-phase="build"],
     [data-intro-phase="meet"]
   )
@@ -368,7 +353,7 @@ html:not([data-journey="ready"]) [data-pixel-world="hero"]::after {
   }
 }
 
-/* The glance ends beside the future island, before the first seed is emitted. */
+/* Accelerate out of the waking pose, then settle softly above the foothold. */
 html[data-intro="playing"][data-intro-phase="look"]
   [data-journey][data-active-scene]
   .journey-traveler {
@@ -377,8 +362,8 @@ html[data-intro="playing"][data-intro-phase="look"]
   width: var(--traveler-width, 100px);
   transform: translate(var(--traveler-x, 0px), var(--traveler-y, 0px));
   transition:
-    transform 850ms steps(16, end),
-    width 850ms steps(16, end),
-    left 850ms steps(16, end),
-    top 850ms steps(16, end);
+    transform 850ms cubic-bezier(0.45, 0, 0.18, 1),
+    width 850ms cubic-bezier(0.45, 0, 0.18, 1),
+    left 850ms cubic-bezier(0.45, 0, 0.18, 1),
+    top 850ms cubic-bezier(0.45, 0, 0.18, 1);
 }

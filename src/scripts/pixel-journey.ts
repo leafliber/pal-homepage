@@ -30,9 +30,15 @@ export function initPixelJourney(
     document.querySelectorAll<HTMLButtonElement>("[data-scene-next]");
   let activeIndex = 0;
   let transitionTimer: number | undefined;
-  let lockedUntil = 0;
   let wheelTotal = 0;
-  let lastWheelTime = 0;
+  let lastWheelTime = -Infinity;
+  let lastWheelMagnitude = 0;
+  let lastWheelDirection = 0;
+  let lastWheelNavigation = -Infinity;
+  let wheelPeak = 0;
+  let wheelDecaySteps = 0;
+  let wheelTrough = Infinity;
+  let wheelActiveDistance = 0;
   let wheelConsumed = false;
   let paused = root.dataset.paused === "true";
   let touch:
@@ -142,7 +148,6 @@ export function initPixelJourney(
       history.pushState(null, "", `#${next.id}`);
     }
     if (!options.initial) {
-      lockedUntil = performance.now() + (reducedMotion.matches ? 250 : 700);
       transitionTimer = window.setTimeout(
         () => {
           scenes.forEach((scene) => scene.classList.remove("is-leaving"));
@@ -245,21 +250,60 @@ export function initPixelJourney(
       if (document.querySelector(".site-header.menu-open")) {
         event.preventDefault();
         wheelTotal = 0;
+        wheelConsumed = false;
+        lastWheelTime = -Infinity;
         return;
       }
       const now = performance.now();
-      if (now - lastWheelTime > 200) {
-        wheelConsumed = false;
-        wheelTotal = 0;
-      }
-      lastWheelTime = now;
-      if (wheelConsumed || now < lockedUntil) {
-        event.preventDefault();
-        return;
-      }
       const delta =
         event.deltaY *
         (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? innerHeight : 1);
+      const magnitude = Math.abs(delta);
+      const direction = Math.sign(delta);
+      const gap = now - lastWheelTime;
+      const reversed = lastWheelDirection !== 0 && direction !== lastWheelDirection;
+      const canStartSameDirection = now - lastWheelNavigation >= 80;
+      // Continued finger pressure can be one uninterrupted stream. Accumulate
+      // stable/rising input, while each meaningful decrease discards momentum.
+      wheelActiveDistance = magnitude >= 8 && magnitude >= lastWheelMagnitude - 0.1
+        ? wheelActiveDistance + Math.min(magnitude, 120)
+        : 0;
+      const sustainedForce =
+        wheelConsumed && now - lastWheelNavigation >= 280 && wheelActiveDistance >= 480;
+      // Browser wheel events do not identify new gestures. A direction reversal,
+      // a separate strong pulse, or renewed force after a decaying tail is intent
+      // to move again; the outgoing scene's animation does not lock navigation.
+      const separatePulse = gap >= 60 && magnitude >= lastWheelMagnitude * 0.98;
+      const renewedForce =
+        wheelTrough < Infinity &&
+        magnitude >= Math.max(24, wheelTrough * 1.8) &&
+        magnitude - wheelTrough >= 18;
+      if (
+        reversed ||
+        (canStartSameDirection && (gap >= 120 || separatePulse || renewedForce || sustainedForce))
+      ) {
+        // Small wheel notches can add up until they actually cross a chapter.
+        if (wheelConsumed || reversed || gap >= 120) wheelTotal = 0;
+        wheelConsumed = false;
+        wheelPeak = magnitude;
+        wheelDecaySteps = 0;
+        wheelTrough = Infinity;
+        wheelActiveDistance = 0;
+      } else {
+        wheelPeak = Math.max(wheelPeak, magnitude);
+        if (magnitude < lastWheelMagnitude - 1) wheelDecaySteps += 1;
+        else if (magnitude > lastWheelMagnitude + 1) wheelDecaySteps = 0;
+        if (wheelDecaySteps >= 2 && magnitude <= wheelPeak * 0.65) {
+          wheelTrough = Math.min(wheelTrough, magnitude);
+        }
+      }
+      lastWheelTime = now;
+      lastWheelMagnitude = magnitude;
+      lastWheelDirection = direction;
+      if (wheelConsumed) {
+        event.preventDefault();
+        return;
+      }
       const scroller = scrollableFor(event.target, delta);
       if (scroller) {
         wheelTotal = 0;
@@ -277,6 +321,7 @@ export function initPixelJourney(
       wheelTotal += Math.max(-90, Math.min(90, delta));
       if (Math.abs(wheelTotal) < 70) return;
       wheelConsumed = true;
+      lastWheelNavigation = now;
       goTo(activeIndex + Math.sign(wheelTotal));
       wheelTotal = 0;
     },
@@ -317,7 +362,7 @@ export function initPixelJourney(
           scroller.scrollTop +=
             direction *
             (event.key.startsWith("Arrow") ? 60 : scroller.clientHeight * 0.8);
-        } else if (!event.repeat && performance.now() >= lockedUntil) {
+        } else if (!event.repeat) {
           goTo(activeIndex + direction, { focus: true });
         }
       } else if (event.key === "Home" || event.key === "End") {
@@ -371,7 +416,6 @@ export function initPixelJourney(
         !start ||
         !point ||
         start.canScroll ||
-        performance.now() < lockedUntil ||
         document.querySelector(".site-header.menu-open")
       )
         return;

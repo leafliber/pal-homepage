@@ -92,13 +92,15 @@ const isHero = scene === "hero";
         <g class="assembly" style="--reveal-delay:3.2s">
           <path d="m293 324 58-27 70 29-60 29Z" fill="var(--world-dark)" opacity=".8" />
         </g>
-        <g class="intro-seed transient story-transient" data-story-seed>
-          <path d="M364 268h8v8h-8Z" fill="var(--world-accent)" />
-          <path d="M352 258h4v4h-4Zm-9-8h3v3h-3Z" fill="var(--world-white)" opacity=".4" />
+        <g class="intro-landing transient story-transient" data-story-landing>
+          <path d="m302 326 60-30 60 30v8l-60 30-60-30Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="2" />
+          <path d="m302 326 60 30 60-30m-60 30v8" stroke="var(--world-white)" stroke-width="2" opacity=".5" />
+          <path class="landing-light" d="m314 326 48-24 48 24-48 24Z" fill="var(--world-accent)" />
+          <path d="m338 326 24-12 24 12-24 12Z" stroke="var(--world-white)" stroke-width="2" opacity=".65" />
         </g>
-        <g class="intro-impact transient story-transient" data-story-impact>
-          <path d="m413 354 18-9 18 9-18 9Z" stroke="var(--world-accent)" stroke-width="3" />
-          <path d="M405 345h4v4h-4Zm48 0h4v4h-4Zm-24-15h4v4h-4Z" fill="var(--world-accent)" />
+        <g class="intro-ground-pulse transient story-transient" data-story-impact>
+          <path d="m332 326 30-15 30 15-30 15Z" stroke="var(--world-accent)" stroke-width="2" vector-effect="non-scaling-stroke" />
+          <path d="m347 326 15-7 15 7-15 7Z" stroke="var(--world-white)" stroke-width="1" vector-effect="non-scaling-stroke" opacity=".45" />
         </g>
         <g class="assembly grow-in" data-story-growth data-story-part="sprouts" style="--reveal-delay:4.1s">
           <use href={`#${id}-plant`} x="225" y="242" width="48" height="58" />
@@ -128,10 +130,13 @@ const isHero = scene === "hero";
         <g class="assembly" style="--reveal-delay:7.3s">
           <path class="garden-heart" d="M231 286h6v6h6v-6h6v6h6v6h-6v6h-6v6h-6v-6h-6v-6h-6v-6h6Z" fill="var(--world-accent)" />
         </g>
-        <g class="garden-seed transient story-transient" data-story-loop="seed-to-friend">
-          <rect x="365" y="271" width="6" height="6" fill="var(--world-accent)" />
+        <g class="garden-floor transient story-transient" data-story-loop="floor-to-friend">
+          <path d="m314 326 48-24 48 24-48 24Z" fill="var(--world-accent)" fill-opacity=".12" stroke="var(--world-accent)" stroke-width="2" />
+          <path d="m338 326 24-12 24 12-24 12Z" stroke="var(--world-white)" stroke-width="2" opacity=".55" />
         </g>
-        <g class="garden-ripple transient story-transient"><path d="m412 355 21-10 21 10-21 10Z" stroke="var(--world-accent)" stroke-width="2" /></g>
+        <g class="garden-ripple transient story-transient" data-story-pulse>
+          <path d="m350 326 12-6 12 6-12 6Z" stroke="var(--world-accent)" stroke-width="2" vector-effect="non-scaling-stroke" />
+        </g>
         <g class="garden-firefly transient story-transient"><path d="M432 343h5v5h-5Z" fill="var(--world-white)" /></g>
       </>
     )}
@@ -273,9 +278,9 @@ const isHero = scene === "hero";
   .pixel-world--cortina { --cycle-delay: 1s; }
   .pixel-world--join { --cycle-delay: 1s; }
   .world-canvas { display: block; width: 100%; height: auto; overflow: visible; }
-  .transient { opacity: 0; }
+  .transient, .landing-light { opacity: 0; }
   .grow-in, .garden-sprout, .engine-growth { transform-box: fill-box; transform-origin: center bottom; }
-  .intro-impact, .garden-ripple, .engine-awake, .garden-crystal, .builder-crystal, .portal-light { transform-box: fill-box; transform-origin: center; }
+  .intro-ground-pulse, .garden-ripple, .engine-awake, .garden-crystal, .builder-crystal, .portal-light { transform-box: fill-box; transform-origin: center; }
 
   /* A quiet, complete illustration is the default, including without JavaScript.
      Only the active chapter gets a timeline, so leaving it cancels its story. */
@@ -287,18 +292,19 @@ const isHero = scene === "hero";
   :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .pixel-world--hero .assembly { animation: world-assemble .6s steps(6, end) both; animation-delay: var(--reveal-delay, 0s); }
   :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .pixel-world--hero .grow-in { animation-name: plant-emerge; }
   :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .pixel-world--hero .friend-arrival { animation-name: friend-arrive; }
-  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .intro-seed { animation: first-seed .65s 2.4s steps(9, end) both; }
-  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .intro-impact { animation: seed-impact .8s 2.9s steps(5, end) both; }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .intro-landing { animation: foothold-landing 1.35s 2.4s steps(7, end) both; }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .landing-light { animation: foothold-light .9s 2.75s steps(6, end) both; }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .intro-ground-pulse { animation: ground-awaken .95s 2.9s steps(7, end) both; }
 
   /* Fourteen-second story beats share a clock. After the small chain of events,
      the world rests; decorations do not all float or bounce together. */
-  :global(html[data-journey="ready"] .scene.is-active) :is(.garden-seed, .garden-ripple, .garden-sprout, .garden-firefly, .garden-crystal, .garden-friend, .garden-heart, .crystal-rays, .desktop-friend, .desktop-greeting, .desktop-reply, .desktop-cursor, .steam, .bridge-step, .builder-crystal, .builder-cursor, .builder-done, .join-friend, .portal-rim, .portal-light, .portal-sparks, .join-heart) {
+  :global(html[data-journey="ready"] .scene.is-active) :is(.garden-floor, .garden-ripple, .garden-sprout, .garden-firefly, .garden-crystal, .garden-friend, .garden-heart, .crystal-rays, .desktop-friend, .desktop-greeting, .desktop-reply, .desktop-cursor, .steam, .bridge-step, .builder-crystal, .builder-cursor, .builder-done, .join-friend, .portal-rim, .portal-light, .portal-sparks, .join-heart) {
     animation-duration: 14s;
     animation-timing-function: steps(8, end);
     animation-delay: var(--cycle-delay);
     animation-iteration-count: infinite;
   }
-  :global(html[data-journey="ready"] .scene.is-active) .garden-seed { animation-name: garden-seed; }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-floor { animation-name: floor-awake; }
   :global(html[data-journey="ready"] .scene.is-active) .garden-ripple { animation-name: garden-ripple; }
   :global(html[data-journey="ready"] .scene.is-active) .garden-sprout { animation-name: garden-grow; }
   :global(html[data-journey="ready"] .scene.is-active) .garden-firefly { animation-name: garden-firefly; }
@@ -337,10 +343,22 @@ const isHero = scene === "hero";
   @keyframes plant-emerge { from { opacity: 0; transform: scaleY(.05); } 40% { opacity: 1; } to { opacity: 1; transform: scaleY(1); } }
   @keyframes friend-arrive { from { opacity: 0; transform: translate(-24px, -12px); } 65% { opacity: 1; transform: translate(-6px, -6px); } to { opacity: 1; transform: translate(0, 0); } }
   @keyframes block-arrive { from { opacity: 0; transform: translateY(-38px); } 70% { opacity: 1; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes first-seed { 0% { opacity: 0; transform: translate(0, 0); } 12% { opacity: 1; } 40% { transform: translate(28px, -14px); } 90% { opacity: 1; transform: translate(63px, 80px); } 100% { opacity: 0; transform: translate(63px, 80px); } }
-  @keyframes seed-impact { 0% { opacity: 0; transform: scale(.1); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(3.4); } }
-  @keyframes garden-seed { 0%, 3% { opacity: 0; transform: translate(0, 0); } 4% { opacity: 1; } 7% { transform: translate(32px, -15px); } 11% { opacity: 1; transform: translate(66px, 80px); } 12%, 100% { opacity: 0; transform: translate(66px, 80px); } }
-  @keyframes garden-ripple { 0%, 10% { opacity: 0; transform: scale(.5); } 11% { opacity: .8; } 17%, 100% { opacity: 0; transform: scale(1.7); } }
+  @keyframes foothold-landing {
+    0% { opacity: 0; transform: translateY(8px); }
+    15%, 25% { opacity: .8; transform: translateY(0); }
+    30%, 40% { opacity: 1; transform: translateY(4px); }
+    50%, 75% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(0); }
+  }
+  @keyframes foothold-light { 0% { opacity: 0; } 20%, 45% { opacity: .32; } 100% { opacity: 0; } }
+  @keyframes ground-awaken { 0% { opacity: 0; transform: scale(.6); } 20% { opacity: .75; } 65% { opacity: .5; } 100% { opacity: 0; transform: scale(5.4); } }
+  @keyframes floor-awake { 0%, 2%, 11%, 100% { opacity: 0; } 4% { opacity: .7; } 7% { opacity: .4; } }
+  @keyframes garden-ripple {
+    0%, 6% { opacity: 0; transform: translate(0, 0) scale(.5); }
+    7% { opacity: .75; }
+    11% { opacity: .6; transform: translate(70px, 30px) scale(1.2); }
+    16%, 100% { opacity: 0; transform: translate(70px, 30px) scale(2.2); }
+  }
   @keyframes garden-grow { 0%, 11%, 24%, 100% { transform: scaleY(1); } 14% { transform: scaleY(.55); } 20% { transform: scaleY(1.2); } }
   @keyframes garden-firefly { 0%, 21% { opacity: 0; transform: translate(0, 0); } 22% { opacity: 1; } 27% { transform: translate(5px, -35px); } 31% { opacity: 1; transform: translate(40px, -62px); } 32%, 100% { opacity: 0; transform: translate(40px, -62px); } }
   @keyframes crystal-awake { 0%, 30%, 43%, 100% { transform: scale(1); opacity: 1; } 34% { transform: scale(1.2); opacity: .65; } 38% { transform: scale(1.1); opacity: 1; } }

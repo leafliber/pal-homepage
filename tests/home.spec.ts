@@ -56,6 +56,25 @@ async function swipeUp(page: Page, sceneId: string) {
   });
 }
 
+async function wheelStream(page: Page, impulses: { delta: number; after: number; mode?: 0 | 1 | 2 }[]) {
+  return page.evaluate(async (events) => {
+    const samples: { index: number; time: number; leaving: number }[] = [];
+    for (const event of events) {
+      if (event.after) await new Promise((resolve) => setTimeout(resolve, event.after));
+      const active = document.querySelector<HTMLElement>(".scene.is-active")!;
+      active.dispatchEvent(new WheelEvent("wheel", {
+        bubbles: true, cancelable: true, deltaY: event.delta, deltaMode: event.mode ?? 0,
+      }));
+      samples.push({
+        index: Number(document.querySelector<HTMLElement>("main[data-journey]")!.dataset.activeScene),
+        time: performance.now(),
+        leaving: document.querySelectorAll(".scene.is-leaving").length,
+      });
+    }
+    return samples;
+  }, impulses);
+}
+
 async function assertNoOverflow(page: Page) {
   const sizes = await page.evaluate(() => ({
     viewport: window.innerWidth,
@@ -199,8 +218,7 @@ test("paging moves through the game world while its background and document stay
   await page.mouse.move(100, 400);
   await page.mouse.wheel(0, 650);
   await assertActiveScene(page, 1);
-  // Leave enough time for the gesture lock and inertial wheel stream to settle.
-  await page.waitForTimeout(800);
+  // A deliberate reversal remains responsive while the previous move is active.
   await page.mouse.wheel(0, -650);
   await assertActiveScene(page, 0);
   expect(await background.boundingBox()).toEqual(initialBackground);
@@ -213,6 +231,98 @@ test("paging moves through the game world while its background and document stay
   await page.locator("[data-scene-prev]").click();
   await assertActiveScene(page, 3);
   expect(await background.boundingBox()).toEqual(initialBackground);
+});
+
+test("rapid chapter changes never paint an outgoing chapter footer", async ({ page }) => {
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  const samples = await page.evaluate(async () => {
+    const results: { active: string; leaving: number; painted: string[] }[] = [];
+    const readFrame = () => {
+      const painted = [...document.querySelectorAll<HTMLElement>("[data-scene] .scene-bottom")]
+        .filter((footer) => {
+          let node: Element | null = footer;
+          while (node) {
+            const style = getComputedStyle(node);
+            if (Number(style.opacity) <= 0.01 || style.visibility === "hidden" || style.display === "none") return false;
+            node = node.parentElement;
+          }
+          return true;
+        })
+        .map((footer) => footer.closest("[data-scene]")!.id);
+      results.push({
+        active: document.querySelector(".scene.is-active")!.id,
+        leaving: document.querySelectorAll(".scene.is-leaving").length,
+        painted,
+      });
+    };
+    for (const direction of ["next", "prev", "next", "next", "prev"]) {
+      document.querySelector<HTMLButtonElement>(`[data-scene-${direction}]`)!.click();
+      readFrame();
+      const until = performance.now() + 80;
+      while (performance.now() < until) {
+        await new Promise(requestAnimationFrame);
+        readFrame();
+      }
+    }
+    return results;
+  });
+  expect(samples.some((sample) => sample.leaving > 0)).toBe(true);
+  for (const sample of samples) {
+    expect(sample.painted, `outgoing footer must disappear immediately while ${sample.active} is active`).toEqual([sample.active]);
+  }
+  await assertActiveScene(page, 2);
+});
+
+test("fresh wheel input and a reversal interrupt an unfinished chapter transition", async ({ page }) => {
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  const samples = await wheelStream(page, [
+    { delta: 120, after: 0 },
+    { delta: 120, after: 250 },
+    { delta: -120, after: 50 },
+  ]);
+  expect(samples.map((sample) => sample.index)).toEqual([2, 3, 2]);
+  expect(samples[1]!.time - samples[0]!.time).toBeLessThan(700);
+  expect(samples.every((sample) => sample.leaving > 0)).toBe(true);
+  await assertActiveScene(page, 2);
+});
+
+test("continuous deliberate wheel input advances without waiting for a quiet gap", async ({ page }) => {
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  // Two ordinary three-line mouse notches must accumulate enough intent,
+  // followed by sustained input without a pause between chapter changes.
+  const samples = await wheelStream(page, [
+    { delta: 3, mode: 1, after: 0 },
+    { delta: 3, mode: 1, after: 90 },
+    ...Array.from({ length: 5 }, () => ({ delta: 120, after: 90 })),
+  ]);
+  expect(samples.slice(0, 2).map((sample) => sample.index)).toEqual([1, 2]);
+  for (let index = 1; index < samples.length; index += 1) {
+    expect(samples[index]!.time - samples[index - 1]!.time).toBeLessThan(200);
+  }
+  expect(samples.at(-1)!.index).toBe(4);
+  await assertActiveScene(page, 4);
+
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  const sustained = await wheelStream(page, Array.from({ length: 42 }, (_, index) => ({
+    delta: 120, after: index ? 16 : 0,
+  })));
+  expect(sustained.at(-1)!.index, "a sustained trackpad gesture must keep responding without a quiet interval").toBeGreaterThanOrEqual(3);
+  expect(sustained.at(-1)!.time - sustained[0]!.time).toBeLessThan(1_200);
+});
+
+test("a decaying wheel tail does not skip chapters but renewed intent advances again", async ({ page }) => {
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  const samples = await wheelStream(page, [120, 90, 65, 44, 29, 18, 10, 5, 100].map((delta, index) => ({
+    delta, after: index ? 45 : 0,
+  })));
+  expect(samples.slice(0, -1).map((sample) => sample.index)).toEqual(Array(8).fill(2));
+  expect(samples.at(-1)!.index).toBe(3);
+  await assertActiveScene(page, 3);
 });
 
 test("scene links support keyboard navigation, direct URLs and browser history", async ({
@@ -423,7 +533,7 @@ test("without JavaScript, all scenes, anchors and project links remain available
   }
 });
 
-test("the hero tells an automatic story: wake, seed, island, growth and a new friend", async ({
+test("the hero tells an automatic story: wake, landing, island, growth and a new friend", async ({
   page,
 }) => {
   // Use real time for this visual test: JavaScript fake clocks cannot advance
@@ -474,10 +584,19 @@ test("the hero tells an automatic story: wake, seed, island, growth and a new fr
 
   await at(1_600);
   await expect(root).toHaveAttribute("data-intro-phase", "look");
+  const movement = await traveler.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { properties: style.transitionProperty, timing: style.transitionTimingFunction };
+  });
+  expect(movement.properties).toContain("transform");
+  expect(movement.timing).toContain("cubic-bezier(");
+  expect(movement.timing).not.toContain("steps(");
+  const gazeTiming = await eyes.evaluate((element) => getComputedStyle(element).animationTimingFunction);
+  expect(gazeTiming).not.toContain("steps(");
   await expectPainted(island, false);
   await at(2_600);
-  await expect(root).toHaveAttribute("data-intro-phase", "signal");
-  await expectPainted(world.locator("[data-story-seed]"), true);
+  await expect(root).toHaveAttribute("data-intro-phase", "landing");
+  await expectPainted(world.locator("[data-story-landing]"), true);
   await expectPainted(island, false);
   await expectPainted(friend, false);
 
@@ -502,6 +621,7 @@ test("the hero tells an automatic story: wake, seed, island, growth and a new fr
   await expectPainted(page.locator(".hero-copy"), true);
   await expectPainted(page.locator(".site-header"), true);
   await expect(world.locator("text, button, input, [role='button']")).toHaveCount(0);
+  await expect(page.locator("[data-story-seed], .traveler-signal, .garden-seed")).toHaveCount(0);
   await expect(page.locator(".build-sequence, .art-topline, .world-caption, .chapter-label, .hero-pixel-heading, .hero-footnote, .world-coordinate, .traveler-name")).toHaveCount(0);
   await assertActiveScene(page, 0);
   await assertTravelerAtAnchor(page);
