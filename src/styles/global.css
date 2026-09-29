@@ -1,0 +1,578 @@
+@import "./projects.css";
+
+:root {
+  --bg: #262626;
+  --surface: #f5f6f2;
+  --text: #f5f5f0;
+  --muted: #b8bbb6;
+  --accent: #00a870;
+  --accent-text: #63e5b6;
+  --ink: #1c1828;
+  --line: #454745;
+  --font:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: var(--font);
+  color-scheme: dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 108px;
+}
+body {
+  margin: 0;
+  min-width: 280px;
+  font-size: 16px;
+  line-height: 1.75;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 6px;
+}
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+[hidden] {
+  display: none !important;
+}
+::selection {
+  background: #00ad7c66;
+  color: white;
+}
+.container {
+  width: calc(100% - 112px);
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 100;
+  padding: 10px 20px;
+  transform: translateY(-160%);
+  border-radius: 8px;
+  background: var(--accent-text);
+  color: #14251c;
+}
+.skip-link:focus {
+  transform: none;
+}
+.header-marker {
+  position: absolute;
+  top: 40px;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.site-header.scrolled {
+  border-color: var(--line);
+}
+.header-inner {
+  height: 98px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.wordmark {
+  display: block;
+  flex-shrink: 0;
+}
+.wordmark img {
+  width: 80px;
+  height: 80px;
+  image-rendering: pixelated;
+}
+.site-header nav {
+  display: flex;
+  gap: 38px;
+  align-items: center;
+  font-size: 14px;
+}
+.site-header nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 44px;
+}
+.site-header nav a:hover {
+  color: var(--accent-text);
+}
+.site-header .nav-github {
+  margin-left: 14px;
+}
+.menu-toggle {
+  display: none;
+}
+.hero {
+  min-height: 658px;
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  align-items: center;
+  gap: 14px;
+  padding-block: 42px 70px;
+}
+.hero-copy {
+  position: relative;
+  z-index: 2;
+  padding-bottom: 26px;
+}
+.hero h1 {
+  font-size: clamp(37px, 4.25vw, 60px);
+  font-weight: 550;
+  line-height: 1.4;
+  letter-spacing: -2.3px;
+  margin-right: -32px;
+}
+.hero h1 > span {
+  display: block;
+  white-space: nowrap;
+}
+.accent {
+  color: var(--accent-text);
+}
+.hero-description {
+  color: #c0c3be;
+  font-size: 17px;
+  line-height: 1.95;
+  margin-top: 28px;
+}
+.hero-actions {
+  display: flex;
+  align-items: center;
+  gap: 29px;
+  margin-top: 34px;
+  flex-wrap: wrap;
+}
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  min-height: 51px;
+  padding: 12px 23px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.6;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.button > span[aria-hidden] {
+  font-size: 21px;
+  font-weight: 400;
+  line-height: 1;
+}
+.button-primary {
+  background: var(--accent);
+  color: #06281d;
+}
+.button-primary:hover {
+  background: #32d09c;
+  transform: translateY(-2px);
+}
+.quiet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 44px;
+  font-size: 15px;
+  color: #d9dcd6;
+}
+.quiet-link:hover {
+  color: var(--accent-text);
+}
+.hero-visual {
+  min-width: 0;
+  margin: 0 -18px 0 0;
+}
+.projects-section {
+  padding-top: 42px;
+}
+.section-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 25px;
+  margin-bottom: 30px;
+}
+.section-heading h2 {
+  font-size: clamp(27px, 2.5vw, 34px);
+  font-weight: 500;
+  letter-spacing: -1px;
+}
+.section-heading p {
+  font-size: 14px;
+  color: var(--muted);
+}
+.philosophy-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 90px;
+  padding-block: 105px 103px;
+  border-top: 1px solid var(--line);
+}
+.section-label {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 19px;
+}
+.philosophy-section h2 {
+  font-size: clamp(31px, 3.2vw, 43px);
+  font-weight: 500;
+  letter-spacing: -1.4px;
+  line-height: 1.5;
+}
+.philosophy-copy {
+  padding-top: 27px;
+}
+.philosophy-copy > p {
+  font-size: 17px;
+  color: #c7cbc5;
+  line-height: 2.05;
+}
+.philosophy-copy .button {
+  margin-top: 29px;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  padding-block: 30px 34px;
+}
+.footer-note {
+  color: #b8bbb6;
+}
+.footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
+.footer a:hover {
+  color: var(--accent-text);
+}
+.not-found {
+  padding-block: 130px;
+}
+.not-found .eyebrow {
+  color: var(--accent-text);
+  font-size: 14px;
+}
+.not-found h1 {
+  margin-top: 22px;
+  font-size: clamp(32px, 5vw, 60px);
+  font-weight: 500;
+}
+.not-found > p:not(.eyebrow) {
+  margin-block: 25px 35px;
+  color: var(--muted);
+}
+
+@media (max-width: 1100px) {
+  .container {
+    width: calc(100% - 72px);
+  }
+  .hero {
+    min-height: 595px;
+    gap: 5px;
+  }
+  .hero h1 {
+    font-size: 42px;
+    letter-spacing: -1.8px;
+  }
+  .hero-description {
+    font-size: 15px;
+  }
+  .hero-visual {
+    margin-right: -12px;
+  }
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .philosophy-section {
+    gap: 60px;
+    padding-block: 84px;
+  }
+}
+@media (max-width: 800px) {
+  .hero h1 {
+    font-size: 34px;
+  }
+  .hero-description {
+    font-size: 14px;
+  }
+  .hero-actions {
+    gap: 18px;
+  }
+  .button {
+    font-size: 14px;
+    padding-inline: 19px;
+    gap: 20px;
+  }
+  .quiet-link {
+    font-size: 14px;
+  }
+  .philosophy-section {
+    gap: 35px;
+  }
+  .philosophy-copy > p {
+    font-size: 15px;
+  }
+}
+@media (max-width: 700px) {
+  html {
+    scroll-padding-top: 84px;
+  }
+  .container {
+    width: calc(100% - 40px);
+  }
+  .header-inner {
+    height: 79px;
+    flex-wrap: wrap;
+  }
+  .wordmark img {
+    width: 66px;
+    height: 66px;
+  }
+  .menu-toggle {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    width: 44px;
+    height: 44px;
+    background: none;
+    border: 1px solid #777e75;
+    border-radius: 8px;
+  }
+  .menu-toggle span {
+    height: 1px;
+    width: 18px;
+    background: var(--text);
+    transition: transform 0.2s;
+  }
+  .site-header nav {
+    gap: 20px;
+    font-size: 13px;
+  }
+  .site-header .nav-github {
+    margin-left: 0;
+  }
+  .enhanced nav {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 78px;
+    padding: 17px 22px 23px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .enhanced.menu-open nav {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+  }
+  .enhanced.menu-open nav a {
+    min-height: 46px;
+    font-size: 16px;
+  }
+  .enhanced.menu-open .menu-toggle span:first-child {
+    transform: translateY(3.5px) rotate(45deg);
+  }
+  .enhanced.menu-open .menu-toggle span:last-child {
+    transform: translateY(-3.5px) rotate(-45deg);
+  }
+  .site-header:not(.enhanced) .header-inner {
+    height: auto;
+    min-height: 79px;
+    padding-bottom: 12px;
+  }
+  .site-header:not(.enhanced) nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 0;
+    padding-block: 42px 34px;
+    gap: 12px;
+  }
+  .hero-copy {
+    padding-bottom: 0;
+  }
+  .hero h1 {
+    font-size: clamp(28px, 8.05vw, 47px);
+    letter-spacing: -1.3px;
+    margin-right: 0;
+    line-height: 1.43;
+  }
+  .hero-description {
+    font-size: 15px;
+    line-height: 1.9;
+    margin-top: 23px;
+  }
+  .hero-actions {
+    margin-top: 27px;
+    gap: 24px;
+  }
+  .button {
+    min-height: 50px;
+    padding: 12px 21px;
+    font-size: 14px;
+  }
+  .quiet-link {
+    font-size: 14px;
+    gap: 10px;
+  }
+  .hero-visual {
+    margin: 6px -6px 0;
+  }
+  .projects-section {
+    padding-top: 27px;
+  }
+  .section-heading {
+    gap: 9px;
+    margin-bottom: 25px;
+  }
+  .section-heading h2 {
+    font-size: 26px;
+    letter-spacing: -0.8px;
+  }
+  .section-heading p {
+    font-size: 13px;
+  }
+  .philosophy-section {
+    display: block;
+    padding-block: 57px 63px;
+  }
+  .section-label {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .philosophy-section h2 {
+    font-size: 33px;
+  }
+  .philosophy-copy {
+    padding-top: 25px;
+  }
+  .philosophy-copy > p {
+    font-size: 15px;
+    line-height: 2;
+  }
+  .philosophy-copy .button {
+    margin-top: 27px;
+  }
+  .footer {
+    padding-block: 22px 26px;
+    font-size: 11px;
+  }
+  .footer-note {
+    display: none;
+  }
+  .not-found {
+    padding-block: 80px;
+  }
+}
+@media (max-width: 360px) {
+  .hero h1 {
+    font-size: 27px;
+    letter-spacing: -1.2px;
+  }
+  .hero-description {
+    font-size: 14px;
+  }
+  .hero-actions {
+    gap: 19px;
+  }
+  .button {
+    font-size: 13px;
+    gap: 19px;
+    padding-inline: 17px;
+  }
+  .quiet-link {
+    font-size: 13px;
+  }
+  .section-heading h2 {
+    font-size: 23px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .button-primary:hover {
+    transform: none;
+  }
+}

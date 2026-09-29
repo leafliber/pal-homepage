@@ -1,0 +1,50 @@
+---
+import { site } from '../data/site';
+---
+<header class="site-header">
+  <div class="header-inner container">
+    <a class="wordmark" href="/" aria-label="Pal AI Lab 首页"><img src="/images/pal-ai.png" width="200" height="200" alt="Pal AI" /></a>
+    <button class="menu-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="打开导航菜单" hidden><span></span><span></span></button>
+    <nav id="main-nav" aria-label="主要导航">
+      <a href="/#projects">项目</a>
+      <a href="/#philosophy">理念</a>
+      <a class="nav-github" href={site.github} target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a>
+    </nav>
+  </div>
+</header>
+<script>
+  const header = document.querySelector<HTMLElement>('.site-header');
+  const toggle = document.querySelector<HTMLButtonElement>('.menu-toggle');
+  const nav = document.querySelector<HTMLElement>('#main-nav');
+  if (header && toggle && nav) {
+    header.classList.add('enhanced');
+    toggle.hidden = false;
+    const close = (restore = false) => {
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', '打开导航菜单');
+      header.classList.remove('menu-open');
+      if (restore) toggle.focus();
+    };
+    toggle.addEventListener('click', () => {
+      const open = toggle.getAttribute('aria-expanded') !== 'true';
+      toggle.setAttribute('aria-expanded', String(open));
+      toggle.setAttribute('aria-label', open ? '关闭导航菜单' : '打开导航菜单');
+      header.classList.toggle('menu-open', open);
+      if (open) nav.querySelector<HTMLAnchorElement>('a')?.focus();
+    });
+    nav.addEventListener('click', (event) => { if ((event.target as Element).closest('a')) close(); });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && header.classList.contains('menu-open')) close(true);
+    });
+    document.addEventListener('click', (event) => {
+      if (!header.contains(event.target as Node)) close();
+    });
+    header.addEventListener('focusout', () => {
+      setTimeout(() => { if (!header.contains(document.activeElement)) close(); }, 0);
+    });
+    matchMedia('(min-width: 701px)').addEventListener('change', () => close());
+    const observer = new IntersectionObserver(([entry]) => header.classList.toggle('scrolled', !entry?.isIntersecting));
+    const marker = document.querySelector('.header-marker');
+    if (marker) observer.observe(marker);
+  }
+</script>

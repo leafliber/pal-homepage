@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="24 24 180 208" width="180" height="208" role="img" aria-label="Cortico">
+  <title>Cortico</title>
+  <g fill="none" stroke-linecap="round">
+    <path d="M182 63.66A84 84 0 1 0 182 192.34" stroke="#1B1626" stroke-width="30"/>
+    <circle cx="113" cy="117" r="16" stroke="#00A870" stroke-width="11"/>
+    <circle cx="163" cy="117" r="16" stroke="#00A870" stroke-width="11"/>
+  </g>
+</svg>

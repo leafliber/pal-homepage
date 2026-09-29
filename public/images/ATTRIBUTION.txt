@@ -1,0 +1,58 @@
+Coo artwork (coo.svg)
+
+Source project: Pal-AI-Lab/Coopanion
+Source revision: 50d0c2c4fd8940c39a181c36bc414df0bd812d77
+Source file: assets/banner-dark.svg
+Source URL: https://github.com/Pal-AI-Lab/Coopanion/blob/50d0c2c4fd8940c39a181c36bc414df0bd812d77/assets/banner-dark.svg
+License URL: https://github.com/Pal-AI-Lab/Coopanion/blob/50d0c2c4fd8940c39a181c36bc414df0bd812d77/LICENSE
+Retrieved: 2026-09-29
+
+Modification: extracted the existing Coo vector character from the banner,
+removed the banner background and wordmark, and adjusted the SVG viewport.
+Original geometry and character colors are retained. This is official project
+artwork presented inside a conceptual website scene, not a product screenshot.
+No third-party character or model-provider logo is included.
+
+MIT License
+
+Copyright (c) 2026 Phantivia
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+Cortico logo (cortico.svg, cortico-mark.svg)
+
+Source project: Pal-AI-Lab/Cortico
+Source revision: c68c489d79a2480983c899a1dd34b20f1b167406
+Source file: assets/cortico-banner.svg
+Source URL: https://github.com/Pal-AI-Lab/Cortico/blob/c68c489d79a2480983c899a1dd34b20f1b167406/assets/cortico-banner.svg
+License URL: https://github.com/Pal-AI-Lab/Cortico/blob/c68c489d79a2480983c899a1dd34b20f1b167406/LICENSE
+Retrieved: 2026-09-29
+
+cortico.svg is an unmodified copy of the official banner. cortico-mark.svg
+extracts the existing C-and-eyes vector mark, omits the wordmark and white
+background, and adjusts the SVG viewport. Original path geometry and colors
+are retained. Copyright (c) 2026 Phantivia; the MIT License above applies.
+
+
+Pal AI image (pal-ai.png)
+
+Source: image supplied by the user for this homepage revision on 2026-09-29.
+Unmodified copy of the supplied 200 by 200 pixel image. Used for the requested
+Pal AI Lab website; no broader third-party reuse license is asserted.

@@ -1,0 +1,35 @@
+{
+  "name": "pal-homepage",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.11.0",
+  "engines": {
+    "node": ">=26.8.1 <27",
+    "pnpm": "11.11.0"
+  },
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1 --ignore-lock",
+    "check": "astro check",
+    "build": "astro build",
+    "preview": "astro preview --host 127.0.0.1 --ignore-lock",
+    "preview:cf": "pnpm build && wrangler dev --ip 127.0.0.1 --port 8787",
+    "test:e2e": "playwright test",
+    "deploy:dry": "pnpm build && wrangler deploy --dry-run",
+    "deploy": "pnpm check && pnpm build && wrangler deploy"
+  },
+  "dependencies": {
+    "astro": "7.3.5",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@playwright/test": "1.63.0",
+    "@types/three": "0.186.0",
+    "@axe-core/playwright": "4.11.1",
+    "typescript": "6.0.3",
+    "wrangler": "4.143.0",
+    "lighthouse": "13.5.0",
+    "sharp": "0.35.5"
+  }
+}
