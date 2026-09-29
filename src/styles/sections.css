@@ -1,0 +1,360 @@
+/* Three content stages; the project selector belongs inside the project stage. */
+.journey-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
+.journey-bar::before {
+  content: "";
+}
+.chapter-nav {
+  margin: 0;
+  gap: 66px;
+}
+.chapter-nav a {
+  gap: 9px;
+  padding: 0;
+  font-size: 12px;
+}
+.chapter-nav-label {
+  display: inline;
+  font-size: inherit;
+}
+.chapter-nav a + a::before {
+  content: "";
+  position: absolute;
+  width: 28px;
+  height: 1px;
+  left: -47px;
+  background: var(--line);
+}
+.chapter-nav a[aria-current="step"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 3px;
+  height: 2px;
+  background: var(--accent);
+}
+.journey-controls {
+  justify-self: end;
+}
+.site-header nav a[aria-current="step"] {
+  color: var(--accent);
+}
+
+/* Intro and invitation stay open; projects share a contained exhibit layout. */
+.project-scene,
+html[data-journey="ready"] .project-scene {
+  display: flex;
+  flex-direction: column;
+  padding-block: 32px 18px;
+  scrollbar-gutter: stable;
+}
+.project-scene .project-layout,
+html[data-journey="ready"] .project-scene .project-layout {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 0;
+  flex: 1 0 auto;
+}
+.project-panel {
+  position: relative;
+  width: 100%;
+  min-height: var(--project-panel-height, 0px);
+  border: 1px solid #505647;
+  background: #20221de8;
+  box-shadow: 7px 7px 0 #171a14;
+}
+/* Between projects the destination reuses the same shell geometry. Paint one
+   stationary frame/header, while its inner copy and pixel world change. */
+html[data-journey="ready"]
+  main[data-scene-transition="project"]
+  .project-scene.is-leaving
+  .project-layout {
+  animation: none;
+  transform: none;
+  visibility: hidden;
+}
+.project-panel::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  width: 52px;
+  height: 3px;
+  background: var(--accent);
+}
+.project-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 62px;
+  padding-inline: 30px;
+  border-bottom: 1px solid var(--line);
+}
+.project-section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+}
+.project-section-icon {
+  width: 5px;
+  height: 5px;
+  margin-right: 7px;
+  margin-bottom: 7px;
+  background: var(--accent);
+  box-shadow: 8px 0 0 var(--accent), 0 8px 0 var(--accent), 8px 8px 0 var(--accent);
+}
+.project-switcher {
+  display: flex;
+  align-self: stretch;
+  gap: 28px;
+}
+.project-switcher a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  color: var(--muted);
+  font: 12px var(--mono);
+}
+.project-switcher a:hover,
+.project-switcher a[aria-current="step"] {
+  color: var(--accent);
+}
+.project-switcher a[aria-current="step"]::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 3px;
+  background: var(--accent);
+}
+.project-body {
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  align-items: center;
+  gap: 40px;
+  padding: 32px 40px 36px 28px;
+}
+.project-body .scene-copy {
+  min-width: 0;
+}
+.project-body .scene-art,
+html[data-journey="ready"] .project-body .scene-art {
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+}
+.project-role {
+  margin-bottom: 18px;
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+}
+.project-scene .project-title {
+  width: 100%;
+  max-width: 340px;
+  margin: 0;
+}
+.cortico-scene .project-title,
+.cortina-scene .project-title {
+  max-width: 280px;
+}
+.project-scene .project-description {
+  margin-top: 24px;
+  max-width: 400px;
+}
+.project-scene .capability-path {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 18px;
+  margin-top: 24px;
+  border-top: 1px solid var(--line);
+}
+.project-scene .capability-path li {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 11px;
+}
+.project-scene .capability-path li::before {
+  flex: 0 0 3px;
+  margin-top: 8px;
+}
+.project-scene .scene-actions {
+  margin-top: 26px;
+}
+.project-scene .scene-bottom,
+html[data-journey="ready"] .project-scene .scene-bottom {
+  position: relative;
+  inset: auto;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 1280px;
+  margin: 20px auto 0;
+}
+@media (min-width: 761px) and (max-height: 800px) {
+  .project-section-header {
+    min-height: 54px;
+  }
+  .project-body {
+    padding-block: 24px;
+  }
+  .project-body .scene-art,
+  html[data-journey="ready"] .project-body .scene-art {
+    max-width: 420px;
+  }
+  .project-role {
+    margin-bottom: 14px;
+  }
+  .project-scene .project-description {
+    margin-top: 18px;
+  }
+  .project-scene .capability-path {
+    margin-top: 18px;
+  }
+}
+@media (max-width: 1000px) {
+  .project-body {
+    gap: 24px;
+    padding-inline: 24px;
+  }
+  .project-switcher {
+    gap: 22px;
+  }
+  .project-section-header {
+    padding-inline: 24px;
+  }
+}
+@media (max-width: 760px) {
+  .journey-bar {
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+  .journey-bar::before {
+    display: none;
+  }
+  .chapter-nav {
+    justify-content: flex-start;
+    gap: 26px;
+  }
+  .chapter-nav a {
+    font-size: 10px;
+    gap: 6px;
+  }
+  .chapter-nav a + a::before {
+    width: 10px;
+    left: -18px;
+  }
+  .chapter-dot {
+    width: 4px;
+    height: 4px;
+  }
+  .project-scene,
+  html[data-journey="ready"] .project-scene {
+    padding: 20px 6vw 20px;
+  }
+  .project-scene .project-layout,
+  html[data-journey="ready"] .project-scene .project-layout {
+    align-items: flex-start;
+  }
+  .project-section-header {
+    display: block;
+    padding: 16px 18px 0;
+  }
+  .project-section-label {
+    font-size: 11px;
+  }
+  .project-switcher {
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 4px;
+  }
+  .project-switcher a {
+    font-size: 11px;
+  }
+  .project-body {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 20px 18px 8px;
+  }
+  .project-body .scene-copy {
+    order: -1;
+  }
+  .project-body .scene-art,
+  html[data-journey="ready"] .project-body .scene-art {
+    max-width: 250px;
+  }
+  .project-role {
+    margin-bottom: 12px;
+    font-size: 11px;
+  }
+  .project-scene .project-title {
+    max-width: 265px;
+  }
+  .cortico-scene .project-title,
+  .cortina-scene .project-title {
+    max-width: 210px;
+  }
+  .project-scene .project-description {
+    margin-top: 16px;
+    font-size: 12px;
+  }
+  .project-scene .capability-path {
+    margin-top: 18px;
+    padding-top: 14px;
+    gap: 8px;
+  }
+  .project-scene .capability-path li {
+    font-size: 9px;
+    gap: 5px;
+  }
+  .project-scene .capability-path li::before {
+    margin-top: 6px;
+  }
+  .project-scene .scene-actions {
+    margin-top: 20px;
+  }
+  .project-scene .scene-bottom,
+  html[data-journey="ready"] .project-scene .scene-bottom {
+    margin-top: 12px;
+  }
+}
+@media (max-width: 360px) {
+  .project-scene,
+  html[data-journey="ready"] .project-scene {
+    padding-block: 12px;
+  }
+  .chapter-nav {
+    gap: 20px;
+  }
+  .chapter-nav a + a::before {
+    width: 6px;
+    left: -13px;
+  }
+  .project-section-header {
+    padding-top: 12px;
+    padding-inline: 14px;
+  }
+  .project-switcher {
+    gap: 8px;
+  }
+  .project-switcher a {
+    font-size: 10px;
+  }
+  .project-body {
+    padding: 12px 14px 8px;
+  }
+  .project-body .scene-art,
+  html[data-journey="ready"] .project-body .scene-art {
+    max-width: 180px;
+  }
+}

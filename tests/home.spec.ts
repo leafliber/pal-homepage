@@ -6,6 +6,7 @@ import { organization, projects } from "../src/data/projects";
 
 const artifacts = path.resolve("artifacts");
 const sceneIds = ["home", "projects", "coopanion", "cortina", "join"] as const;
+const projectRoles = ["智能体框架", "桌面伙伴", "扩展工具"] as const;
 
 async function waitForJourney(page: Page) {
   await expect(page.locator("html")).toHaveAttribute("data-journey", "ready");
@@ -30,6 +31,32 @@ async function assertActiveScene(page: Page, index: number) {
     await expect(other).toHaveJSProperty("inert", true);
   }
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  await assertNavigationHierarchy(page, index);
+}
+
+async function assertNavigationHierarchy(page: Page, index: number) {
+  const group = index === 0 ? "intro" : index === 4 ? "join" : "projects";
+  const groupName = index === 0 ? "简介" : index === 4 ? "共建" : "项目";
+  await expect(page.locator("main[data-journey]")).toHaveAttribute("data-active-group", group);
+  await expect(page.locator(`#${sceneIds[index]}`)).toHaveAttribute("data-scene-group", group);
+  const stages = page.getByRole("navigation", { name: "章节导航", exact: true });
+  await expect(stages.getByRole("link")).toHaveCount(3);
+  for (const name of ["简介", "项目", "共建"]) {
+    await expect(stages.getByRole("link", { name, exact: true })).toHaveCount(1);
+  }
+  await expect(stages.locator('[aria-current="step"]')).toHaveCount(1);
+  await expect(stages.locator('[aria-current="step"]')).toHaveAccessibleName(groupName);
+
+  const visibleProjectNavigation = page.getByRole("navigation", { name: "项目选择", exact: true });
+  await expect(visibleProjectNavigation).toHaveCount(group === "projects" ? 1 : 0);
+  if (group === "projects") {
+    await expect(visibleProjectNavigation.getByRole("link")).toHaveCount(projects.length);
+    for (const project of projects) {
+      await expect(visibleProjectNavigation.getByRole("link", { name: project.name, exact: true })).toHaveCount(1);
+    }
+    await expect(visibleProjectNavigation.locator('[aria-current="step"]')).toHaveCount(1);
+    await expect(visibleProjectNavigation.locator('[aria-current="step"]')).toHaveAccessibleName(projects[index - 1]!.name);
+  }
 }
 
 async function nextScene(page: Page, index: number) {
@@ -93,9 +120,10 @@ async function assertSceneContent(page: Page, index: number) {
   const scene = page.locator(`#${sceneIds[index]}[data-scene]`);
   if (index === 0) {
     await expect(scene.getByRole("heading", { level: 1 })).toHaveText(
-      /让\s*AI，\s*走进你的世界。/,
+      /做最好的\s*开源人格 AI。/,
     );
     await expect(scene.locator("[data-pixel-world='hero']")).toBeVisible();
+    await expect(scene.locator(".scene-actions").getByRole("link", { name: "了解开源项目", exact: true })).toBeVisible();
   } else if (index <= projects.length) {
     const project = projects[index - 1]!;
     await expect(
@@ -105,12 +133,59 @@ async function assertSceneContent(page: Page, index: number) {
     await expect(projectLink).toBeVisible();
     await expect(projectLink).toBeInViewport();
     await expect(scene).toContainText(project.description);
+    const panel = scene.locator(".project-panel");
+    await expect(panel.locator(".project-section-label")).toHaveText("开源项目");
+    await expect(panel.locator(".project-role")).toHaveText(projectRoles[index - 1]!);
+    await expect(panel.locator(".project-role")).toBeInViewport();
+    await expect(panel.getByRole("heading", { level: 2, name: project.name, exact: true })).toBeVisible();
+    await assertProjectLayout(page, index);
   } else {
     await expect(scene.getByRole("heading", { level: 2 })).toBeVisible();
     await expect(
       scene.locator(`a[href="${organization.contributionHref}"]`),
     ).toBeVisible();
     await expect(scene.locator(`a[href="${organization.href}"]`)).toBeVisible();
+  }
+}
+
+async function assertProjectLayout(page: Page, index: number) {
+  const layout = await page.locator(`#${sceneIds[index]}`).evaluate((scene) => {
+    const panel = scene.querySelector<HTMLElement>(".project-panel")!;
+    const switcher = scene.querySelector<HTMLElement>(".project-switcher")!;
+    const heading = panel.querySelector<HTMLElement>("h2")!;
+    const action = panel.querySelector<HTMLAnchorElement>('a[target="_blank"]')!;
+    const footer = scene.querySelector<HTMLElement>(".scene-bottom")!;
+    const bar = document.querySelector<HTMLElement>(".journey-bar")!;
+    const art = scene.querySelector<HTMLElement>(".scene-art")!;
+    const copy = panel.querySelector<HTMLElement>(".scene-copy")!;
+    const copyBox = copy.getBoundingClientRect();
+    const panelBox = panel.getBoundingClientRect();
+    const switcherBox = switcher.getBoundingClientRect();
+    const artBox = art.getBoundingClientRect();
+    const overlaps: string[] = [];
+    for (const [name, element] of [["project selection", switcher], ["project heading", heading], ["project action", action]] as const) {
+      const box = element.getBoundingClientRect();
+      for (const [obstacleName, obstacle] of [["chapter footer", footer], ["fixed journey bar", bar]] as const) {
+        const obstacleBox = obstacle.getBoundingClientRect();
+        if (Math.min(box.right, obstacleBox.right) - Math.max(box.left, obstacleBox.left) > 1 &&
+            Math.min(box.bottom, obstacleBox.bottom) - Math.max(box.top, obstacleBox.top) > 1) {
+          overlaps.push(`${name} overlaps ${obstacleName}`);
+        }
+      }
+    }
+    return {
+      overlaps,
+      switcherInsidePanel: switcherBox.left >= panelBox.left - 1 && switcherBox.right <= panelBox.right + 1 &&
+        switcherBox.top >= panelBox.top - 1 && switcherBox.bottom <= panelBox.bottom + 1,
+      artCenter: artBox.left + artBox.width / 2,
+      copyCenter: copyBox.left + copyBox.width / 2,
+      width: innerWidth,
+    };
+  });
+  expect(layout.overlaps, "project navigation and actions must remain clear of fixed navigation").toEqual([]);
+  expect(layout.switcherInsidePanel, "project selection belongs to its project panel").toBe(true);
+  if (layout.width >= 1_024) {
+    expect(layout.artCenter, "desktop project art is on the left and its description is on the right").toBeLessThan(layout.copyCenter);
   }
 }
 
@@ -274,6 +349,86 @@ test("rapid chapter changes never paint an outgoing chapter footer", async ({ pa
   await assertActiveScene(page, 2);
 });
 
+for (const viewport of [
+  { width: 1440, height: 1000 },
+  { width: 390, height: 844 },
+]) {
+  test(`${viewport.width}px: project frame and header remain stationary during rapid project switches`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await page.goto("/#projects");
+    await waitForJourney(page);
+    await assertActiveScene(page, 1);
+    const sequence = await page.evaluate(async () => {
+      await document.fonts.ready;
+      const rect = (element: Element) => {
+        const box = element.getBoundingClientRect();
+        return { x: box.x, y: box.y, width: box.width, height: box.height };
+      };
+      const painted = (element: Element) => {
+        let node: Element | null = element;
+        while (node) {
+          const style = getComputedStyle(node);
+          if (Number(style.opacity) <= 0.01 || style.visibility === "hidden" || style.display === "none") return false;
+          node = node.parentElement;
+        }
+        return true;
+      };
+      const readFrame = () => {
+        const active = document.querySelector(".scene.is-active")!;
+        const frame = active.querySelector(".project-panel")!;
+        const header = active.querySelector(".project-section-header")!;
+        return {
+          active: active.id,
+          frame: rect(frame),
+          header: rect(header),
+          paintedFrames: [...document.querySelectorAll(".project-panel")].filter(painted).map((element) => element.closest("[data-scene]")!.id),
+          paintedHeaders: [...document.querySelectorAll(".project-section-header")].filter(painted).map((element) => element.closest("[data-scene]")!.id),
+        };
+      };
+      const baseline = readFrame();
+      const samples: ReturnType<typeof readFrame>[] = [];
+      for (const direction of ["next", "next", "prev", "prev", "next", "next", "prev"]) {
+        document.querySelector<HTMLButtonElement>(`[data-scene-${direction}]`)!.click();
+        samples.push(readFrame());
+        const until = performance.now() + 80;
+        while (performance.now() < until) {
+          await new Promise(requestAnimationFrame);
+          samples.push(readFrame());
+        }
+      }
+      return { baseline, samples };
+    });
+    expect(new Set(sequence.samples.map((sample) => sample.active)).size).toBe(3);
+    for (const sample of sequence.samples) {
+      expect(sample.paintedFrames, "the outgoing project must not paint a second outer frame").toEqual([sample.active]);
+      expect(sample.paintedHeaders, "only the current project header may be painted").toEqual([sample.active]);
+      for (const part of ["frame", "header"] as const) {
+        for (const property of ["x", "y", "width", "height"] as const) {
+          expect(Math.abs(sample[part][property] - sequence.baseline[part][property]),
+            `${part} ${property} must stay fixed while switching to ${sample.active}`).toBeLessThanOrEqual(1);
+        }
+      }
+    }
+    await assertActiveScene(page, 2);
+
+    // Leaving the project collection still changes the whole scene; returning
+    // restores the same frame rather than leaving an overlay above other stages.
+    const stages = page.getByRole("navigation", { name: "章节导航", exact: true });
+    for (const [name, index] of [["共建", 4], ["简介", 0], ["项目", 1]] as const) {
+      await stages.getByRole("link", { name, exact: true }).click();
+      await assertActiveScene(page, index);
+      await expect(page.locator(".scene.is-active .project-panel")).toHaveCount(index === 1 ? 1 : 0);
+    }
+    await expect.poll(async () => {
+      const box = await page.locator(".scene.is-active .project-panel").boundingBox();
+      if (!box) return Infinity;
+      return Math.max(...(["x", "y", "width", "height"] as const).map((property) =>
+        Math.abs(box[property] - sequence.baseline.frame[property]),
+      ));
+    }).toBeLessThanOrEqual(1);
+  });
+}
+
 test("fresh wheel input and a reversal interrupt an unfinished chapter transition", async ({ page }) => {
   await page.goto("/#projects");
   await waitForJourney(page);
@@ -352,6 +507,35 @@ test("scene links support keyboard navigation, direct URLs and browser history",
   }
 });
 
+test("macro stages and project selection stay distinct through deep links, keyboard use and history", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#cortina");
+  await waitForJourney(page);
+  await assertActiveScene(page, 3);
+  const selectProject = async (name: string, index: number) => {
+    await page.getByRole("navigation", { name: "项目选择", exact: true })
+      .getByRole("link", { name, exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await assertActiveScene(page, index);
+    await expect(page).toHaveURL(new RegExp(`/#${sceneIds[index]}$`));
+  };
+  await selectProject("Cortico", 1);
+  await selectProject("Coopanion", 2);
+  await page.goBack();
+  await assertActiveScene(page, 1);
+  await page.goBack();
+  await assertActiveScene(page, 3);
+  await page.goForward();
+  await assertActiveScene(page, 1);
+
+  const stages = page.getByRole("navigation", { name: "章节导航", exact: true });
+  for (const [name, index] of [["共建", 4], ["简介", 0], ["项目", 1]] as const) {
+    await stages.getByRole("link", { name, exact: true }).focus();
+    await page.keyboard.press("Enter");
+    await assertActiveScene(page, index);
+  }
+});
+
 test("inactive scenes cannot receive keyboard focus", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/#projects");
@@ -418,9 +602,39 @@ test("touch swipes change scenes, respect tall content, and reset scroll when re
     "data-active-scene",
     "1",
   );
+  // Enable normal motion for the native-scroll segment: reduced motion would
+  // hide a regression where the actor takes 850 ms to catch up with its island.
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await assertTravelerAtAnchor(page);
+  await page.evaluate(() => {
+    const observed = window as Window & {
+      __palFirstScrollFrame?: { scrollTop: number; offset: number };
+    };
+    const scene = document.querySelector<HTMLElement>("#projects")!;
+    scene.addEventListener("scroll", () => {
+      requestAnimationFrame(() => {
+        const actor = document.querySelector<HTMLElement>("[data-traveler]")!.getBoundingClientRect();
+        const anchor = scene.querySelector<SVGGraphicsElement>("[data-traveler-anchor]")!.getBoundingClientRect();
+        observed.__palFirstScrollFrame = {
+          scrollTop: scene.scrollTop,
+          offset: Math.max(
+            Math.abs(actor.x - anchor.x), Math.abs(actor.y - anchor.y),
+            Math.abs(actor.width - anchor.width), Math.abs(actor.height - anchor.height),
+          ),
+        };
+      });
+    }, { once: true, passive: true });
+  });
   // A synthetic swipe checks event routing; a real wheel scroll verifies native overflow.
   await page.mouse.move(150, 300);
   await page.mouse.wheel(0, 2000);
+  await expect.poll(() => page.evaluate(() =>
+    (window as Window & { __palFirstScrollFrame?: { scrollTop: number } }).__palFirstScrollFrame?.scrollTop ?? 0,
+  )).toBeGreaterThan(0);
+  const firstScrollOffset = await page.evaluate(() =>
+    (window as Window & { __palFirstScrollFrame?: { offset: number } }).__palFirstScrollFrame!.offset,
+  );
+  expect(firstScrollOffset, "the traveler must follow native inner scrolling by the first rendered frame").toBeLessThanOrEqual(1);
   await expect
     .poll(() => projectScene.evaluate((scene) => scene.scrollTop))
     .toBeGreaterThan(0);
@@ -659,6 +873,128 @@ test("a project deep link skips the opening even with motion enabled", async ({
   await expectPainted(page.locator(".site-header"), true);
 });
 
+test("the shared traveler changes gear in sequence and respects interrupted navigation and motion preferences", async ({ page }) => {
+  const variants = [null, "cortico", "coopanion", "cortina", "join"] as const;
+  const readGear = () => page.locator("[data-traveler] [data-traveler-gear]").evaluateAll((groups) =>
+    groups.map((group) => {
+      const style = getComputedStyle(group);
+      let visible = true;
+      let node: Element | null = group;
+      while (node) {
+        const ancestor = getComputedStyle(node);
+        if (ancestor.display === "none" || ancestor.visibility === "hidden" || Number(ancestor.opacity) <= 0.01) visible = false;
+        node = node.parentElement;
+      }
+      return { variant: group.getAttribute("data-traveler-gear"), visible, opacity: Number(style.opacity), transform: style.transform };
+    }),
+  );
+  const assertGear = async (index: number) => {
+    await expect(page.locator("[data-traveler]")).toHaveCount(1);
+    await expect(page.locator("[data-traveler] [data-traveler-gear]")).toHaveCount(4);
+    await expect.poll(async () => (await readGear()).every((gear) =>
+      gear.variant === variants[index] ? gear.visible && gear.opacity >= 0.98 : !gear.visible,
+    )).toBe(true);
+  };
+  const recordChanges = (steps: { action: "next" | "prev" | "home"; observeFor: number }[]) => page.evaluate(async (changes) => {
+    const capture = () => ({
+      index: Number(document.querySelector<HTMLElement>("main[data-journey]")!.dataset.activeScene),
+      gears: [...document.querySelectorAll("[data-traveler] [data-traveler-gear]")].map((group) => {
+        const style = getComputedStyle(group);
+        return {
+          variant: group.getAttribute("data-traveler-gear"),
+          visible: style.display !== "none" && style.visibility !== "hidden" && Number(style.opacity) > 0.01,
+          opacity: Number(style.opacity), transform: style.transform,
+        };
+      }),
+    });
+    const initial = capture();
+    const samples: ReturnType<typeof capture>[] = [];
+    const destinations: number[] = [];
+    for (const step of changes) {
+      if (step.action === "home") document.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
+      else document.querySelector<HTMLButtonElement>(`[data-scene-${step.action}]`)!.click();
+      samples.push(capture());
+      destinations.push(samples.at(-1)!.index);
+      const deadline = performance.now() + step.observeFor;
+      while (performance.now() < deadline) {
+        await new Promise(requestAnimationFrame);
+        samples.push(capture());
+      }
+    }
+    return { initial, samples, destinations };
+  }, steps);
+  const assertNoRunningActorAnimation = async () => {
+    // Intentional chapter travel may continue while ambient motion is paused.
+    await assertTravelerAtAnchor(page);
+    await expect.poll(() => page.locator("[data-traveler]").evaluate((actor) =>
+      actor.getAnimations({ subtree: true }).filter((animation) => animation.playState === "running").length,
+    )).toBe(0);
+  };
+
+  for (let index = 1; index < sceneIds.length; index += 1) {
+    await page.goto(`/#${sceneIds[index]}`);
+    await waitForJourney(page);
+    await assertGear(index);
+  }
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  await assertGear(1);
+  const transition = await recordChanges([{ action: "next", observeFor: 750 }]);
+  expect(transition.destinations).toEqual([2]);
+  for (const sample of transition.samples) {
+    expect(sample.gears.filter((gear) => gear.visible).length, "old and new accessories must not be painted together").toBeLessThanOrEqual(1);
+  }
+  for (const variant of ["cortico", "coopanion"]) {
+    expect(transition.samples.some((sample) => sample.gears.some((gear) =>
+      gear.variant === variant && gear.visible && gear.opacity > 0.05 && gear.opacity < 0.95,
+    )), `${variant} must have a visible intermediate fade, not an abrupt replacement`).toBe(true);
+  }
+  const incomingStart = transition.initial.gears.find((gear) => gear.variant === "coopanion")!.transform;
+  const incomingEnd = transition.samples.at(-1)!.gears.find((gear) => gear.variant === "coopanion")!.transform;
+  expect(incomingStart).not.toBe(incomingEnd);
+  expect(transition.samples.some((sample) => sample.gears.some((gear) =>
+    gear.variant === "coopanion" && gear.visible && gear.transform !== incomingStart && gear.transform !== incomingEnd,
+  )), "incoming gear must move through an intermediate pose").toBe(true);
+  const firstIncoming = transition.samples.findIndex((sample) => sample.gears.some((gear) => gear.variant === "coopanion" && gear.visible));
+  const lastOutgoing = transition.samples.findLastIndex((sample) => sample.gears.some((gear) => gear.variant === "cortico" && gear.visible));
+  expect(firstIncoming).toBeGreaterThan(lastOutgoing);
+  await assertGear(2);
+
+  // Each new intent arrives before the preceding transition can finish.
+  const interrupted = await recordChanges([
+    { action: "next", observeFor: 90 }, { action: "prev", observeFor: 90 },
+    { action: "next", observeFor: 90 }, { action: "home", observeFor: 750 },
+  ]);
+  expect(interrupted.destinations).toEqual([3, 2, 3, 0]);
+  for (const sample of interrupted.samples) {
+    expect(sample.gears.filter((gear) => gear.visible).length, "interruptions must not leave overlapping gear").toBeLessThanOrEqual(1);
+  }
+  await assertActiveScene(page, 0);
+  await assertGear(0);
+  expect(interrupted.samples.at(-1)!.gears.filter((gear) => gear.visible)).toEqual([]);
+
+  await page.locator("[data-motion-toggle]").click();
+  await expect(page.locator("html")).toHaveAttribute("data-paused", "true");
+  for (const mode of ["paused", "reduced"] as const) {
+    if (mode === "reduced") {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto("/");
+      await waitForJourney(page);
+    }
+    for (let index = 0; index < sceneIds.length; index += 1) {
+      if (index) {
+        const immediate = await recordChanges([{ action: "next", observeFor: 0 }]);
+        const shown = immediate.samples[0]!.gears.filter((gear) => gear.visible);
+        expect(shown.map((gear) => gear.variant), `${mode} switches directly to the target gear`).toEqual([variants[index]]);
+        expect(shown[0]!.opacity).toBe(1);
+      }
+      await assertActiveScene(page, index);
+      await assertGear(index);
+      await assertNoRunningActorAnimation();
+    }
+  }
+});
+
 test("the motion control stops the world and resumes its automatic animation", async ({
   page,
 }) => {
@@ -769,7 +1105,7 @@ test("unknown paths return a real HTTP 404 and the useful 404 page", async ({
   const response = await page.goto("/this-page-does-not-exist-pal-acceptance/");
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "没有足迹",
+    "页面未找到。",
   );
   await expect(page.getByRole("link", { name: "返回首页" })).toHaveAttribute(
     "href",

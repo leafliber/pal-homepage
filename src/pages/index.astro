@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import PixelText from '../components/PixelText.astro';
 import PixelWorld from '../components/PixelWorld.astro';
+import TravelerGear from '../components/TravelerGear.astro';
 import { projects } from '../data/projects';
 import { site } from '../data/site';
 const chapters = [
@@ -10,15 +11,15 @@ const chapters = [
   { id: 'coopanion', label: 'Coopanion' }, { id: 'cortina', label: 'Cortina' }, { id: 'join', label: '一起共建' },
 ];
 const details = [
-  { heading: '每个世界，都需要一颗心。', steps: ['感知变化', '连接上下文', '采取行动'], id:'projects' },
-  { heading: '你的桌面，多了一位玩家。', steps: ['文字与语音', '桌面陪伴', '经许可的电脑操作'], id:'coopanion' },
-  { heading: '下一个能力，由你的想法解锁。', steps: ['描述想法', '编写与测试', '创建扩展'], id:'cortina' },
+  { role: '智能体框架', steps: ['接收事件', '整理上下文', '处理任务'], id:'projects' },
+  { role: '桌面伙伴', steps: ['文字聊天', '语音聊天', '经许可操作电脑'], id:'coopanion' },
+  { role: '扩展工具', steps: ['描述需求', '编写与测试', '检查安装'], id:'cortina' },
 ];
 ---
 <Base>
   <div class="world-background" data-world-background aria-hidden="true"><div class="world-grid"></div><div class="background-cross cross-one">+</div><div class="background-cross cross-two">+</div><div class="background-cross cross-three">+</div></div>
   <Header />
-  <main id="main" data-journey data-active-scene="0" tabindex="-1">
+  <main id="main" data-journey data-active-scene="0" data-active-group="intro" tabindex="-1">
     <div class="journey-traveler" data-traveler aria-hidden="true">
       <svg class="traveler-sprite" viewBox="0 0 144 156" fill="none" shape-rendering="crispEdges">
         <g class="traveler-shell">
@@ -30,59 +31,73 @@ const details = [
           <path d="M30 48h18v6h6v30h-6v6H30v-6h-6V54h6Zm0 6v30h18V54Zm48-6h18v6h6v30h-6v6H78v-6h-6V54h6Zm0 6v30h18V54Z" fill="currentColor" />
         </g>
         <path class="traveler-smile" d="M114 42h6v12h6v24h-6v12h-6V78h6V54h-6Z" fill="currentColor" />
+        <TravelerGear />
       </svg>
       <svg class="traveler-thought" viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M12 3h12v4h4v12h-4v4H12v5H8v-5H4V7h8Z" fill="var(--accent)"/><path d="M12 9h8v4h-4v3m0 2v3" stroke="#242522" stroke-width="2"/></svg>
     </div>
-    <section id="home" class="scene hero-scene is-active" data-scene aria-labelledby="hero-title">
+    <section id="home" class="scene hero-scene is-active" data-scene data-scene-group="intro" aria-labelledby="hero-title">
       <div class="scene-inner">
         <div class="scene-copy hero-copy">
-          <h1 id="hero-title" tabindex="-1">让 AI，<br />走进你的<span class="accent">世界。</span></h1>
-          <p class="scene-description">从一颗像素开始，创造陪伴的可能。<br />持续运行的智能体，住在桌面的伙伴。<br class="mobile-break" />一起让 AI 走出聊天框。</p>
+          <h1 id="hero-title" tabindex="-1">做最好的<br /><span class="accent">开源人格 AI。</span></h1>
+          <p class="scene-description"><span class="hero-motto" lang="en">Bring your AI to the world!</span>把最新的 AI 技术，变成你身边触手可及的伙伴。</p>
           <div class="scene-actions">
-            <a class="button button-primary" href="#projects" data-scene-link><span class="pixel-play" aria-hidden="true"></span>探索我们的世界<span aria-hidden="true">↓</span></a>
-            <a class="quiet-link" href={site.github} target="_blank" rel="noopener noreferrer">访问 GitHub <span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a>
+            <a class="button button-primary" href="#projects" data-scene-link><span class="pixel-play" aria-hidden="true"></span>了解开源项目<span aria-hidden="true">↓</span></a>
+            <a class="quiet-link" href={site.github} target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a>
           </div>
         </div>
         <div class="scene-art hero-art">
           <PixelWorld scene="hero" />
         </div>
       </div>
-      <div class="scene-bottom"><a href="#projects" data-scene-link class="scroll-hint"><span class="scroll-mouse" aria-hidden="true"></span> 滚动，前往下一幕 <span aria-hidden="true">↓</span></a></div>
+      <div class="scene-bottom"><a href="#projects" data-scene-link class="scroll-hint"><span class="scroll-mouse" aria-hidden="true"></span> 查看开源项目 <span aria-hidden="true">↓</span></a></div>
     </section>
     {projects.map((project, index) => {
       const detail = details[index]!;
-      return <section id={detail.id} class:list={['scene', 'project-scene', `${project.id}-scene`]} data-scene aria-labelledby={`${project.id}-title`}>
-        <div class="scene-inner">
-          <div class="scene-copy">
-            <h2 class="project-title" id={`${project.id}-title`} tabindex="-1"><span class="sr-only">{project.name}</span><PixelText text={project.name} /></h2>
-            <p class="project-headline">{detail.heading}</p>
-            <p class="scene-description project-description">{project.description}</p>
-            <ol class="capability-path" aria-label={`${project.name} 的能力`}>{detail.steps.map((step) => <li>{step}</li>)}</ol>
-            <div class="scene-actions"><a class="button button-primary" href={project.href} target="_blank" rel="noopener noreferrer">{project.linkLabel}<span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a></div>
-          </div>
-          <div class="scene-art">
-            <PixelWorld scene={project.id} />
+      return <section id={detail.id} class:list={['scene', 'project-scene', `${project.id}-scene`]} data-scene data-scene-group="projects" aria-labelledby={`${project.id}-title`}>
+        <div class="scene-inner project-layout">
+          <div class="project-panel">
+            <div class="project-section-header">
+              <p class="project-section-label"><span class="project-section-icon" aria-hidden="true"></span>开源项目</p>
+              <nav class="project-switcher" aria-label="项目选择">
+                {projects.map((entry, projectIndex) => <a href={`#${details[projectIndex]!.id}`} data-scene-link aria-current={projectIndex === index ? 'step' : undefined}>{entry.name}</a>)}
+              </nav>
+            </div>
+            <div class="project-body">
+              <div class="scene-art">
+                <PixelWorld scene={project.id} />
+              </div>
+              <div class="scene-copy">
+                <p class="project-role">{detail.role}</p>
+                <h2 class="project-title" id={`${project.id}-title`} tabindex="-1"><span class="sr-only">{project.name}</span><PixelText text={project.name} /></h2>
+                <p class="scene-description project-description">{project.description}</p>
+                <ol class="capability-path" aria-label={`${project.name} 的能力`}>{detail.steps.map((step) => <li>{step}</li>)}</ol>
+                <div class="scene-actions"><a class="button button-primary" href={project.href} target="_blank" rel="noopener noreferrer">{project.linkLabel}<span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a></div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="scene-bottom"><a href={`#${chapters[index+2]!.id}`} data-scene-link class="scroll-hint">{index === 2 ? '下一幕 / 一起共建' : `下一幕 / ${projects[index+1]!.name}`}<span aria-hidden="true">↓</span></a></div>
+        <div class="scene-bottom"><a href={`#${chapters[index+2]!.id}`} data-scene-link class="scroll-hint">{index === 2 ? '参与项目' : `下一个：${projects[index+1]!.name}`}<span aria-hidden="true">↓</span></a></div>
       </section>;
     })}
-    <section id="join" class="scene join-scene" data-scene aria-labelledby="join-title">
+    <section id="join" class="scene join-scene" data-scene data-scene-group="join" aria-labelledby="join-title">
       <div class="scene-inner">
         <div class="scene-copy">
-          <h2 id="join-title" tabindex="-1">这个世界，<br />还缺一个<span class="accent">你。</span></h2>
-          <p class="scene-description">好的伙伴，一起创造。<br />无论是写代码、做设计、完善文档，<br />还是分享一个大胆的想法，都欢迎加入。</p>
+          <h2 id="join-title" tabindex="-1">欢迎参与<br /><span class="accent">开源协作。</span></h2>
+          <p class="scene-description">欢迎通过 GitHub 反馈问题、提出建议，或参与代码、设计与文档的改进，共同完善开源人格 AI。</p>
           <div class="contribution-tags"><span><b aria-hidden="true">&lt;/&gt;</b> 代码</span><span><b aria-hidden="true">✳</b> 设计</span><span><b aria-hidden="true">≡</b> 文档</span><span><b aria-hidden="true">+</b> 想法</span></div>
-          <div class="scene-actions"><a class="button button-primary" href={site.contribute} target="_blank" rel="noopener noreferrer">加入共建<span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a><a class="quiet-link" href={site.github} target="_blank" rel="noopener noreferrer">在 GitHub 相遇<span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a></div>
+          <div class="scene-actions"><a class="button button-primary" href={site.contribute} target="_blank" rel="noopener noreferrer">贡献指南<span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a><a class="quiet-link" href={site.github} target="_blank" rel="noopener noreferrer">项目仓库<span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a></div>
         </div>
         <div class="scene-art"><PixelWorld scene="join" /></div>
       </div>
-      <footer class="scene-bottom"><span>© {new Date().getFullYear()} Pal AI Lab</span><a href="#home" data-scene-link class="scroll-hint">回到起点 <span aria-hidden="true">↑</span></a></footer>
+      <footer class="scene-bottom"><span>© {new Date().getFullYear()} Pal AI Lab</span><a href="#home" data-scene-link class="scroll-hint">回到首页 <span aria-hidden="true">↑</span></a></footer>
     </section>
   </main>
   <div class="journey-bar">
-    <div class="journey-brand"><span class="journey-fraction"><span data-scene-number>01</span><span class="fraction-separator">/</span>05</span></div>
-    <nav class="chapter-nav" aria-label="章节导航">{chapters.map((chapter,index) => <a href={`#${chapter.id}`} data-scene-link aria-label={`${String(index+1).padStart(2,'0')} ${chapter.label}`} aria-current={index===0?'step':undefined}><span class="chapter-dot" aria-hidden="true"></span><span class="chapter-nav-label">{chapter.label}</span></a>)}</nav>
+    <nav class="chapter-nav" aria-label="章节导航">
+      <a href="#home" data-scene-link data-scene-group-link="intro" aria-current="step"><span class="chapter-dot" aria-hidden="true"></span><span class="chapter-nav-label">简介</span></a>
+      <a href="#projects" data-scene-link data-scene-group-link="projects"><span class="chapter-dot" aria-hidden="true"></span><span class="chapter-nav-label">项目</span></a>
+      <a href="#join" data-scene-link data-scene-group-link="join"><span class="chapter-dot" aria-hidden="true"></span><span class="chapter-nav-label">共建</span></a>
+    </nav>
     <div class="journey-controls"><button class="motion-toggle" data-motion-toggle aria-pressed="false" aria-label="暂停动画"><span class="pause-icon" aria-hidden="true"></span><span class="motion-label" data-motion-label>暂停动画</span></button><span class="control-divider"></span><button class="chapter-button" data-scene-prev aria-label="上一幕" disabled>↑</button><button class="chapter-button" data-scene-next aria-label="下一幕">↓</button></div>
   </div>
   <script>

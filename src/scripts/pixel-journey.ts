@@ -45,6 +45,34 @@ export function initPixelJourney(
     | { x: number; y: number; target: EventTarget | null; canScroll: boolean }
     | undefined;
 
+  const projectFrames = scenes.flatMap((scene) => {
+    const panel = scene.querySelector<HTMLElement>(".project-panel");
+    const header = panel?.querySelector<HTMLElement>(".project-section-header");
+    const body = panel?.querySelector<HTMLElement>(".project-body");
+    return panel && header && body ? [{ panel, header, body }] : [];
+  });
+  const syncProjectFrameSize = () => {
+    if (signal.aborted || !projectFrames.length) return;
+    // Measure intrinsic children, never the equalized outer panel: a smaller
+    // viewport or shorter copy can therefore shrink the shared minimum again.
+    const height = Math.ceil(Math.max(...projectFrames.map(({ panel, header, body }) =>
+      header.getBoundingClientRect().height + body.getBoundingClientRect().height +
+      panel.offsetHeight - panel.clientHeight,
+    )));
+    const pixels = `${height}px`;
+    if (height > 0 && stage.style.getPropertyValue("--project-panel-height") !== pixels) {
+      stage.style.setProperty("--project-panel-height", pixels);
+    }
+  };
+  const projectSizeObserver = new ResizeObserver(syncProjectFrameSize);
+  projectSizeObserver.observe(stage);
+  projectFrames.forEach(({ header, body }) => {
+    projectSizeObserver.observe(header);
+    projectSizeObserver.observe(body);
+  });
+  window.addEventListener("resize", syncProjectFrameSize, { passive: true, signal });
+  void document.fonts.ready.then(syncProjectFrameSize);
+
   const indexForHash = (hash: string): number => {
     let id: string;
     try {
@@ -73,11 +101,21 @@ export function initPixelJourney(
 
   const updateControls = () => {
     const current = scenes[activeIndex];
+    const activeGroup =
+      current?.dataset.sceneGroup ??
+      (activeIndex === 0
+        ? "intro"
+        : activeIndex === scenes.length - 1
+          ? "join"
+          : "projects");
     stage.dataset.activeScene = String(activeIndex);
+    stage.dataset.activeGroup = activeGroup;
     links.forEach((link) => {
-      if (
-        indexForHash(new URL(link.href, location.href).hash) === activeIndex
-      ) {
+      const group = link.dataset.sceneGroupLink;
+      const isCurrent = group
+        ? group === activeGroup
+        : indexForHash(new URL(link.href, location.href).hash) === activeIndex;
+      if (isCurrent) {
         link.setAttribute("aria-current", "step");
       } else {
         link.removeAttribute("aria-current");
@@ -127,6 +165,9 @@ export function initPixelJourney(
     window.clearTimeout(transitionTimer);
     scenes.forEach((scene) => scene.classList.remove("is-leaving"));
     stage.dataset.direction = index >= activeIndex ? "forward" : "backward";
+    stage.dataset.sceneTransition = !options.initial &&
+      previous?.dataset.sceneGroup === "projects" && next.dataset.sceneGroup === "projects"
+      ? "project" : "section";
     if (!options.initial && previous && previous !== next)
       previous.classList.add("is-leaving");
     activeIndex = index;
@@ -450,6 +491,7 @@ export function initPixelJourney(
   document.addEventListener("visibilitychange", syncVisibility, { signal });
 
   root.dataset.journey = "ready";
+  syncProjectFrameSize();
   syncVisibility();
   setMotion();
   goTo(Math.max(0, indexForHash(location.hash)), {
@@ -461,6 +503,9 @@ export function initPixelJourney(
   const destroy = () => {
     controller.abort();
     window.clearTimeout(transitionTimer);
+    projectSizeObserver.disconnect();
+    stage.style.removeProperty("--project-panel-height");
+    delete stage.dataset.sceneTransition;
     scenes.forEach((scene) => {
       scene.inert = false;
       scene.removeAttribute("aria-hidden");

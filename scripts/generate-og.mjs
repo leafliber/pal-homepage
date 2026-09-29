@@ -75,10 +75,11 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
   <text x="147" y="81" class="mono" fill="${palette.white}" font-size="20" font-weight="bold" letter-spacing="1">PAL AI LAB</text>
 
   <rect x="64" y="161" width="6" height="6" fill="${palette.accent}"/>
-  <text x="61" y="244" fill="${palette.white}" font-size="60" font-weight="600" letter-spacing="-2">让 AI，</text>
-  <text x="61" y="321" fill="${palette.accent}" font-size="57" font-weight="600" letter-spacing="-2">走进你的世界。</text>
-  <text x="64" y="373" fill="${palette.muted}" font-size="17">从持续感知，到日常陪伴，再到无限创造。</text>
-  <path d="M64 408h34v6H64Z" fill="${palette.accent}"/>
+  <text x="61" y="244" fill="${palette.white}" font-size="60" font-weight="600" letter-spacing="-2">做最好的</text>
+  <text x="61" y="321" fill="${palette.accent}" font-size="57" font-weight="600" letter-spacing="-2">开源人格 AI。</text>
+  <text x="64" y="370" class="mono" fill="${palette.white}" font-size="18">Bring your AI to the world!</text>
+  <text x="64" y="402" fill="${palette.muted}" font-size="16">把最新的 AI 技术，变成你身边触手可及的伙伴。</text>
+  <path d="M64 435h34v6H64Z" fill="${palette.accent}"/>
 
   ${world}
 

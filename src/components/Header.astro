@@ -7,8 +7,8 @@ import PixelText from './PixelText.astro';
     <a class="wordmark" href="/" aria-label="Pal AI Lab 首页"><svg class="brand-eyes" viewBox="0 0 46 28" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M5 0h9v3H5zM2 3h3v18H2zM14 3h3v18h-3zM5 21h9v3H5zM26 0h9v3h-9zM23 3h3v18h-3zM35 3h3v18h-3zM26 21h9v3h-9zM41 0h3v6h-3zM44 6h2v13h-2zM41 19h3v6h-3zM38 25h3v3h-3z"/></svg><span class="wordmark-type"><PixelText text="PAL AI" /></span></a>
     <button class="menu-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="打开导航菜单" hidden><span></span><span></span></button>
     <nav id="main-nav" aria-label="主要导航">
-      <a href="/#projects" data-scene-link>探索项目</a>
-      <a href="/#join" data-scene-link>一起共建</a>
+      <a href="/#projects" data-scene-link data-scene-group-link="projects">开源项目</a>
+      <a href="/#join" data-scene-link data-scene-group-link="join">参与项目</a>
       <a class="nav-github" href={site.github} target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a>
     </nav>
   </div>

@@ -28,7 +28,7 @@ export const contentVerifiedOn = "2026-09-29";
 export const organization = {
   name: "Pal AI Lab",
   href: "https://github.com/Pal-AI-Lab",
-  description: "让先进的 AI 更容易被使用，也更接近日常生活。",
+  description: "致力于做最好的开源人格 AI，把最新的 AI 技术变成身边触手可及的伙伴。",
   contributionHref:
     "https://github.com/Pal-AI-Lab/Cortico/blob/main/CONTRIBUTING.md",
 } as const;
@@ -37,12 +37,12 @@ export const projects = [
   {
     id: "cortico",
     name: "Cortico",
-    tagline: "持续感知，也持续行动。",
+    tagline: "持续运行的智能体框架。",
     description:
-      "围绕事件流构建的 Agent 框架。让持续运行的智能体接入不同环境，感知变化、组织上下文并采取行动。",
+      "用于持续运行智能体的事件驱动框架，支持事件接收、上下文管理与任务处理。Coopanion 基于该框架构建。",
     href: "https://github.com/Pal-AI-Lab/Cortico",
     sourceUrl: "https://github.com/Pal-AI-Lab/Cortico/blob/main/README_zh.md",
-    linkLabel: "探索 Cortico",
+    linkLabel: "查看仓库",
     image: {
       src: "/images/cortico-mark.svg",
       width: 180,
@@ -57,12 +57,12 @@ export const projects = [
   {
     id: "coopanion",
     name: "Coopanion",
-    tagline: "桌面的一角，多一个伙伴。",
+    tagline: "支持文字与语音交流的桌面 AI 伙伴。",
     description:
-      "基于 Cortico 的桌面伙伴，支持文字、语音交流与经许可的电脑操作。适用于 Windows 和 macOS，需配置模型 API Key。",
+      "基于 Cortico 的桌面 AI 伙伴，支持文字、语音交流及经授权的电脑操作。适用于 Windows 和 macOS，需配置模型 API Key。",
     href: "https://github.com/Pal-AI-Lab/Coopanion",
     sourceUrl: "https://github.com/Pal-AI-Lab/Coopanion/blob/main/README.md",
-    linkLabel: "认识 Coopanion",
+    linkLabel: "查看仓库",
     image: {
       src: "/images/coo.svg",
       width: 256,
@@ -77,11 +77,11 @@ export const projects = [
   {
     id: "cortina",
     name: "Cortina",
-    tagline: "把想法，变成新的能力。",
+    tagline: "面向 Cortico 的扩展开发工具。",
     description:
-      "用自然语言描述需求，让 Coding Agent 在 Cortina 的指引下编写、测试并检查安装，创建你的 Cortico 扩展。",
+      "用于创建 Cortico 扩展。根据自然语言需求，由 Coding Agent 完成代码编写、测试与安装检查。",
     href: "https://github.com/Pal-AI-Lab/Cortina",
     sourceUrl: "https://github.com/Pal-AI-Lab/Cortina/blob/main/README_zh.md",
-    linkLabel: "使用 Cortina",
+    linkLabel: "查看仓库",
   },
 ] as const satisfies readonly Project[];

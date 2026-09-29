@@ -249,6 +249,13 @@ main[data-journey] {
 .mobile-break {
   display: none;
 }
+.hero-motto {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.92em;
+}
 .scene-actions {
   display: flex;
   align-items: center;

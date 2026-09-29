@@ -14,8 +14,10 @@ const introSequence = [
 export function initPixelStory(
   main = document.querySelector<HTMLElement>("main[data-journey]"),
 ): () => void {
-  if (!main || !main.querySelector("[data-traveler]")) return () => {};
+  if (!main) return () => {};
   const stage = main;
+  const traveler = stage.querySelector<HTMLElement>("[data-traveler]");
+  if (!traveler) return () => {};
   mountedStories.get(stage)?.();
 
   const root = document.documentElement;
@@ -37,13 +39,13 @@ export function initPixelStory(
     document.hidden || root.dataset.documentHidden === "true";
 
   const positionTraveler = () => {
-    if (signal.aborted) return;
+    if (signal.aborted) return false;
     const anchor = currentScene()?.querySelector<SVGGraphicsElement>(
       "rect[data-traveler-anchor]",
     );
-    if (!anchor) return;
+    if (!anchor) return false;
     const anchorRect = anchor.getBoundingClientRect();
-    if (anchorRect.width <= 0 || anchorRect.height <= 0) return;
+    if (anchorRect.width <= 0 || anchorRect.height <= 0) return false;
     const stageRect = stage.getBoundingClientRect();
     const values = {
       "--traveler-x":
@@ -52,10 +54,30 @@ export function initPixelStory(
         anchorRect.top - stageRect.top - stage.clientTop + stage.scrollTop,
       "--traveler-width": anchorRect.width,
     };
+    let changed = false;
     for (const [name, value] of Object.entries(values)) {
       const pixels = `${Math.round(value * 100) / 100}px`;
-      if (stage.style.getPropertyValue(name) !== pixels)
+      if (stage.style.getPropertyValue(name) !== pixels) {
         stage.style.setProperty(name, pixels);
+        changed = true;
+      }
+    }
+    return changed;
+  };
+
+  const followSceneScroll = (event: Event) => {
+    const scene = currentScene();
+    if (!(event.target instanceof Node) || !scene?.contains(event.target)) return;
+    // Resetting a chapter's scrollTop during navigation may dispatch a later
+    // scroll event. If scene activation already measured it, preserve the trip.
+    if (!positionTraveler() || root.dataset.intro === "playing") return;
+    // Scroll correction follows the island immediately. Only finish the outer
+    // actor's position transitions; SVG animation and future chapter travel stay.
+    for (const animation of traveler.getAnimations()) {
+      if (
+        animation instanceof CSSTransition &&
+        ["transform", "width", "left", "top"].includes(animation.transitionProperty)
+      ) animation.finish();
     }
   };
 
@@ -153,7 +175,7 @@ export function initPixelStory(
     signal,
   });
   window.addEventListener("load", positionTraveler, { once: true, signal });
-  stage.addEventListener("scroll", positionTraveler, {
+  stage.addEventListener("scroll", followSceneScroll, {
     capture: true,
     passive: true,
     signal,

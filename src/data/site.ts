@@ -14,9 +14,9 @@ if (configuredUrl) {
 
 export const site = {
   name: "Pal AI Lab",
-  title: "Pal AI Lab — 让 AI，走进你的世界。",
+  title: "Pal AI Lab — 做最好的开源人格 AI",
   description:
-    "Pal AI Lab 探索更贴近日常生活的 AI：持续运行的智能体框架 Cortico、桌面伙伴 Coopanion，以及用 Coding Agent 创建扩展的 Cortina。",
+    "做最好的开源人格 AI。Bring your AI to the world! 把最新的 AI 技术变成你身边触手可及的伙伴。",
   url: configuredUrl ? new URL(configuredUrl).origin : undefined,
   github: "https://github.com/Pal-AI-Lab",
   contribute: "https://github.com/Pal-AI-Lab/Cortico/blob/main/CONTRIBUTING.md",
