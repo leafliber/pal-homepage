@@ -1,98 +1,128 @@
-// Node strips types; build-time original geometry is shared with the enhancement.
+/**
+ * Render both static fallbacks from the exact Three.js scene used at runtime.
+ * Run with `node scripts/generate-core.mjs`; requires Chrome or Playwright Chromium.
+ * The locked Astro dependency supplies esbuild only for this authoring command.
+ */
+import { chromium } from "@playwright/test";
+import { existsSync } from "node:fs";
+import { createServer } from "node:http";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
-import {
-  CORE_VIEW,
-  SHELLS,
-  FOCUS_CENTERS,
-  rotatePoint,
-  shellPoint,
-  shellNormal,
-  focusPoint,
-} from "../src/scripts/core-shape.ts";
-const faces = [];
-const project = (point) => {
-  const [x, y, z] = rotatePoint(point, CORE_VIEW.rotation);
-  const perspective = CORE_VIEW.camera / (CORE_VIEW.camera - z);
-  return [
-    300 + x * CORE_VIEW.scale * perspective,
-    274 - y * CORE_VIEW.scale * perspective,
-    z,
-  ];
-};
-const light = [-0.42, 0.65, 0.63];
-const color = (hex, normal, green = false) => {
-  const n = rotatePoint(normal, CORE_VIEW.rotation);
-  const diffuse = Math.max(
-    0,
-    n.reduce((sum, x, i) => sum + x * light[i], 0),
-  );
-  const specular =
-    Math.pow(Math.max(0, n[0] * -0.22 + n[1] * 0.34 + n[2] * 0.91), 18) * 0.16;
-  const shade = 0.36 + 0.64 * diffuse;
-  const rgb = hex.match(/[a-f\d]{2}/gi).map((x) => parseInt(x, 16));
-  return `rgb(${rgb.map((x, i) => Math.round(Math.min(255, x * shade + 255 * specular + (green ? [0, 18, 10][i] : 0))))})`;
-};
-for (const spec of SHELLS) {
-  const rows = 220,
-    cols = 128;
-  for (let i = 0; i < rows; i++)
-    for (let j = 0; j < cols; j++) {
-      const u = i / rows,
-        v = (j / cols) * 2 - 1;
-      const normal = shellNormal(spec, u + 0.5 / rows, v + 1 / cols);
-      const rotatedNormal = rotatePoint(normal, CORE_VIEW.rotation);
-      if (rotatedNormal[2] < -0.08) continue;
-      const points = [
-        [u, v],
-        [u + 1 / rows, v],
-        [u + 1 / rows, v + 2 / cols],
-        [u, v + 2 / cols],
-      ].map(([a, b]) => project(shellPoint(spec, a, b)));
-      faces.push({
-        points,
-        z: points.reduce((sum, p) => sum + p[2], 0) / 4,
-        fill: color(spec.color, normal),
+
+const require = createRequire(import.meta.url);
+const requireFromAstro = createRequire(require.resolve("astro/package.json"));
+const { build } = requireFromAstro("esbuild");
+const root = fileURLToPath(new URL("../", import.meta.url));
+const width = 600;
+const height = 560;
+const pixelRatio = 2;
+
+const { outputFiles } = await build({
+  stdin: {
+    contents: `
+      import * as THREE from "three";
+      import { createCoreScene } from "./src/scripts/core-scene.ts";
+      const renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        preserveDrawingBuffer: true,
       });
+      renderer.setPixelRatio(${pixelRatio});
+      renderer.setSize(${width}, ${height});
+      renderer.setClearColor(0x000000, 0);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.05;
+      document.body.append(renderer.domElement);
+      const core = createCoreScene();
+      core.camera.aspect = ${width} / ${height};
+      core.camera.updateProjectionMatrix();
+      window.renderCore = (blink) => {
+        core.update(0, blink, 0, 0, 0);
+        renderer.render(core.scene, core.camera);
+      };
+      window.disposeCore = () => {
+        core.dispose();
+        renderer.dispose();
+        renderer.forceContextLoss();
+      };
+      window.renderCore(0);
+      window.coreReady = true;
+    `,
+    resolveDir: root,
+    sourcefile: "generate-core-fixture.ts",
+    loader: "ts",
+  },
+  bundle: true,
+  write: false,
+  format: "esm",
+  platform: "browser",
+  target: "es2022",
+  logLevel: "warning",
+});
+
+const bundle = outputFiles[0].text;
+const html = `<!doctype html><html><meta charset="utf-8"><style>
+  html,body{margin:0;width:${width}px;height:${height}px;background:transparent;overflow:hidden}
+  canvas{display:block;width:${width}px;height:${height}px}
+  </style><body><script type="module" src="/core-fixture.js"></script></body></html>`;
+const server = createServer((request, response) => {
+  if (request.url === "/") {
+    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    response.end(html);
+  } else if (request.url === "/core-fixture.js") {
+    response.writeHead(200, { "Content-Type": "text/javascript; charset=utf-8" });
+    response.end(bundle);
+  } else {
+    response.writeHead(request.url === "/favicon.ico" ? 204 : 404);
+    response.end();
+  }
+});
+
+let browser;
+try {
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  const chromePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  const channel = process.env.PLAYWRIGHT_CHANNEL ||
+    (existsSync(chromePath) ? "chrome" : undefined);
+  browser = await chromium.launch({
+    ...(channel ? { channel } : {}),
+    headless: true,
+    args: ["--enable-unsafe-swiftshader"],
+  });
+  const page = await browser.newPage({
+    viewport: { width, height },
+    deviceScaleFactor: pixelRatio,
+  });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.goto(`http://127.0.0.1:${address.port}/`);
+  await page.waitForFunction(() => window.coreReady === true);
+
+  for (const [filename, blink] of [
+    ["living-core.webp", 0],
+    ["living-core-blink.webp", 1],
+  ]) {
+    await page.evaluate((value) => window.renderCore(value), blink);
+    const png = await page.locator("canvas").screenshot({ omitBackground: true });
+    const metadata = await sharp(png).metadata();
+    if (metadata.width !== width * pixelRatio ||
+        metadata.height !== height * pixelRatio || !metadata.hasAlpha) {
+      throw new Error(`Unexpected canvas capture format for ${filename}.`);
     }
+    await sharp(png)
+      .webp({ quality: 90, alphaQuality: 100, effort: 6 })
+      .toFile(fileURLToPath(new URL(`../public/images/${filename}`, import.meta.url)));
+    console.log(`Generated public/images/${filename} (${metadata.width} × ${metadata.height}, alpha).`);
+  }
+  if (errors.length) throw new Error(errors.join("\n"));
+  await page.evaluate(() => window.disposeCore());
+} finally {
+  await browser?.close();
+  await new Promise((resolve) => server.close(resolve));
 }
-for (const center of FOCUS_CENTERS) {
-  for (let i = 0; i < 48; i++)
-    for (let j = 0; j < 80; j++) {
-      const points = [
-        [i / 48, j / 80],
-        [(i + 1) / 48, j / 80],
-        [(i + 1) / 48, (j + 1) / 80],
-        [i / 48, (j + 1) / 80],
-      ].map(([u, v]) => project(focusPoint(u, v, center)));
-      const p = focusPoint((i + 0.5) / 48, (j + 0.5) / 80);
-      const n = [p[0] / 0.175 ** 2, p[1] / 0.27 ** 2, p[2] / 0.13 ** 2];
-      const length = Math.hypot(...n);
-      faces.push({
-        points,
-        z: points.reduce((sum, p) => sum + p[2], 0) / 4,
-        fill: color(
-          "#00d294",
-          n.map((x) => x / length),
-          true,
-        ),
-      });
-    }
-}
-faces.sort((a, b) => a.z - b.z);
-const paths = faces
-  .map(
-    ({ points, fill }) =>
-      `<path d="M${points.map((p) => `${p[0].toFixed(2)},${p[1].toFixed(2)}`).join("L")}Z" fill="${fill}" stroke="${fill}" stroke-width=".55"/>`,
-  )
-  .join("");
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="560" viewBox="0 0 600 560"><title>由三片柔润弧面围合的开放 C 形生命核心，中心有两个绿色感知焦点。原创概念视觉。</title>${paths}</svg>`;
-await sharp(Buffer.from(svg), { density: 192 })
-  .resize(1200, 1120)
-  .blur(0.55)
-  .webp({ quality: 85, alphaQuality: 100 })
-  .toFile(
-    new URL("../public/images/living-core.webp", import.meta.url).pathname,
-  );
-console.log(
-  `Generated living-core.webp from ${faces.length} shared mesh faces.`,
-);

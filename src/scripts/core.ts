@@ -1,11 +1,11 @@
-export type CorePhase = "rest" | "sense" | "connect" | "respond";
+export type CorePhase = "rest" | "blink" | "greet";
 const descriptions: Record<CorePhase, string> = {
-  rest: "从感知，到连接，再到回应。",
-  sense: "感知 · 让一个事件，被看见。",
-  connect: "连接 · 把线索，串成理解。",
-  respond: "回应 · 将理解，变成行动。",
+  rest: "眨眨眼，打个招呼。",
+  blink: "眨眨眼，打个招呼。",
+  greet: "你好，很高兴见到你。",
 };
 const active = new WeakMap<HTMLElement, AbortController>();
+const greetingDuration = 1400;
 
 export function initCore(element: HTMLElement): void {
   active.get(element)?.abort();
@@ -15,24 +15,26 @@ export function initCore(element: HTMLElement): void {
     "[data-core-description]",
   );
   const controls = element.querySelector<HTMLElement>("[data-core-controls]");
-  const send = element.querySelector<HTMLButtonElement>("[data-core-signal]");
+  const greet = element.querySelector<HTMLButtonElement>("[data-core-greet]");
   const pause = element.querySelector<HTMLButtonElement>("[data-core-pause]");
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = window.matchMedia("(pointer: coarse), (max-width: 767px)");
   if (controls) controls.hidden = false;
-  let requested = false,
-    paused = element.dataset.corePaused === "true";
+  let requested = false;
+  let requestVersion = 0;
+  let paused = element.dataset.corePaused === "true";
   let idle: number | undefined, timer: number | undefined;
   let fallbackTimer: number | undefined;
-  let fallbackStep = -1;
+  let fallbackActive = false;
   let fallbackRemaining = 0,
     fallbackStarted = 0;
-  const phaseDurations = [1400, 1600, 1800];
   let visible = true;
   let disposeVisual: (() => void) | undefined;
+
   const setPhase = (phase: CorePhase) => {
     element.dataset.corePhase = phase;
     if (description) description.textContent = descriptions[phase];
+    if (phase === "rest") description?.removeAttribute("aria-live");
   };
   const updatePause = () => {
     element.dataset.corePaused = String(paused);
@@ -45,35 +47,34 @@ export function initCore(element: HTMLElement): void {
       ?.setAttribute("d", paused ? "M3 1l8 5-8 5z" : "M3 2h2v8H3zm4 0h2v8H7z");
   };
   const clearFallbackTimer = () => {
-    if (fallbackTimer !== undefined)
+    if (fallbackTimer !== undefined) {
       fallbackRemaining = Math.max(
         0,
         fallbackRemaining - (performance.now() - fallbackStarted),
       );
-    window.clearTimeout(fallbackTimer);
-    fallbackTimer = undefined;
-  };
-  const advanceFallback = () => {
-    clearFallbackTimer();
-    if (fallbackStep < 0 || paused || document.hidden || !visible) return;
-    const phases: CorePhase[] = ["sense", "connect", "respond", "rest"];
-    setPhase(phases[fallbackStep] ?? "rest");
-    if (fallbackStep >= 3) {
-      fallbackStep = -1;
-      if (pause) pause.hidden = true;
-      description?.removeAttribute("aria-live");
-      schedule();
-      return;
+      window.clearTimeout(fallbackTimer);
+      fallbackTimer = undefined;
     }
+  };
+  const resumeFallback = () => {
+    if (
+      !fallbackActive ||
+      fallbackTimer !== undefined ||
+      paused ||
+      document.hidden ||
+      !visible
+    )
+      return;
     fallbackStarted = performance.now();
     fallbackTimer = window.setTimeout(() => {
       fallbackTimer = undefined;
-      fallbackStep++;
-      fallbackRemaining = phaseDurations[fallbackStep] ?? 0;
-      advanceFallback();
+      fallbackActive = false;
+      setPhase("rest");
+      if (pause) pause.hidden = true;
+      schedule();
     }, fallbackRemaining);
   };
-  send?.addEventListener(
+  greet?.addEventListener(
     "click",
     () => {
       paused = false;
@@ -81,19 +82,21 @@ export function initCore(element: HTMLElement): void {
       if (description) description.setAttribute("aria-live", "polite");
       if (element.dataset.webgl === "ready") {
         element.dispatchEvent(new CustomEvent("core:pause", { detail: false }));
-        element.dispatchEvent(new CustomEvent("core:signal"));
+        element.dispatchEvent(new CustomEvent("core:greet"));
       } else if (reduced.matches) {
         clearFallbackTimer();
-        setPhase("respond");
+        fallbackActive = false;
+        setPhase("greet");
       } else {
         clearFallbackTimer();
-        fallbackStep = 0;
-        fallbackRemaining = phaseDurations[0]!;
-        // Restart even when the previous request is in the same CSS phase.
+        fallbackActive = true;
+        fallbackRemaining = greetingDuration;
+        // Reset the finite CSS gesture before a repeated greeting.
         element.dataset.corePhase = "rest";
         void element.offsetWidth;
+        setPhase("greet");
         if (pause) pause.hidden = false;
-        advanceFallback();
+        resumeFallback();
       }
     },
     { signal: controller.signal },
@@ -105,7 +108,7 @@ export function initCore(element: HTMLElement): void {
       updatePause();
       element.dispatchEvent(new CustomEvent("core:pause", { detail: paused }));
       if (paused) clearFallbackTimer();
-      else advanceFallback();
+      else resumeFallback();
     },
     { signal: controller.signal },
   );
@@ -113,8 +116,7 @@ export function initCore(element: HTMLElement): void {
     "core:phase",
     (event) => {
       const phase = (event as CustomEvent<CorePhase>).detail;
-      setPhase(phase);
-      if (phase === "rest") description?.removeAttribute("aria-live");
+      if (phase in descriptions) setPhase(phase);
     },
     { signal: controller.signal },
   );
@@ -124,7 +126,7 @@ export function initCore(element: HTMLElement): void {
     element.isConnected &&
     !document.hidden &&
     visible &&
-    fallbackStep < 0 &&
+    !fallbackActive &&
     !reduced.matches &&
     !mobile.matches;
   const enhance = () => {
@@ -132,15 +134,15 @@ export function initCore(element: HTMLElement): void {
     timer = undefined;
     if (requested || !canEnhance()) return;
     requested = true;
+    const version = requestVersion;
     import("./core-webgl")
       .then(({ mountCore }) => {
-        if (canEnhance()) {
-          clearFallbackTimer();
-          disposeVisual = mountCore(element);
-        } else requested = false;
+        if (version !== requestVersion) return;
+        if (canEnhance()) disposeVisual = mountCore(element);
+        else requested = false;
       })
       .catch(() => {
-        delete element.dataset.webgl;
+        if (version === requestVersion) delete element.dataset.webgl;
       });
   };
   const schedule = () => {
@@ -154,7 +156,7 @@ export function initCore(element: HTMLElement): void {
     element.dataset.coreSuspended = String(document.hidden || !visible);
     if (document.hidden || !visible) clearFallbackTimer();
     else {
-      advanceFallback();
+      resumeFallback();
       schedule();
     }
   };
@@ -175,21 +177,25 @@ export function initCore(element: HTMLElement): void {
   document.addEventListener("visibilitychange", visibility, {
     signal: controller.signal,
   });
-  reduced.addEventListener(
-    "change",
-    () => {
-      if (reduced.matches) {
-        clearFallbackTimer();
-        fallbackStep = -1;
-        setPhase("rest");
-        if (pause) pause.hidden = true;
-      }
-    },
-    { signal: controller.signal },
-  );
+  const mediaChange = () => {
+    requestVersion++;
+    disposeVisual?.();
+    disposeVisual = undefined;
+    requested = false;
+    clearFallbackTimer();
+    fallbackActive = false;
+    setPhase("rest");
+    if (pause) pause.hidden = true;
+    schedule();
+  };
+  reduced.addEventListener("change", mediaChange, {
+    signal: controller.signal,
+  });
+  mobile.addEventListener("change", mediaChange, { signal: controller.signal });
   controller.signal.addEventListener(
     "abort",
     () => {
+      requestVersion++;
       if (idle !== undefined) window.cancelIdleCallback(idle);
       if (timer !== undefined) window.clearTimeout(timer);
       clearFallbackTimer();
@@ -202,6 +208,7 @@ export function initCore(element: HTMLElement): void {
     once: true,
     signal: controller.signal,
   });
+  setPhase("rest");
   updatePause();
 }
 window.addEventListener("pageshow", (event) => {

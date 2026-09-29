@@ -1,39 +1,97 @@
-import { chromium } from "@playwright/test";
+/**
+ * Generate the share image from the same pixel world as the homepage.
+ * Run `pnpm build` before `node scripts/generate-og.mjs`.
+ * Rendering uses SVG + sharp only, without browser or network dependencies.
+ */
 import { readFile } from "node:fs/promises";
+import sharp from "sharp";
 
-const [core, brand] = await Promise.all(
-  ["living-core.webp", "pal-ai.png"].map(async (name) =>
-    (
-      await readFile(new URL(`../public/images/${name}`, import.meta.url))
-    ).toString("base64"),
-  ),
+const palette = {
+  background: "#242522",
+  white: "#e9e8df",
+  muted: "#a6a79e",
+  dark: "#252622",
+  platform: "#2e302a",
+  accent: "#d5f58c",
+};
+
+const html = await readFile(
+  new URL("../dist/index.html", import.meta.url),
+  "utf8",
 );
-const browser = await chromium.launch({
-  channel: process.env.PLAYWRIGHT_CHANNEL || "chrome",
-  headless: true,
-});
-try {
-  const page = await browser.newPage({
-    viewport: { width: 1200, height: 630 },
-    deviceScaleFactor: 1,
-  });
-  await page.setContent(`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><style>
-    *{box-sizing:border-box}body{margin:0;background:#262626;color:#f5f5f0;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
-    .frame{width:1200px;height:630px;padding:34px 64px;position:relative;overflow:hidden}
-    .brand{width:88px;height:88px;image-rendering:pixelated}h1{position:relative;z-index:2;font-size:50px;line-height:1.48;font-weight:550;letter-spacing:-2px;margin:96px 0 22px}
-    h1 em{font-style:normal;color:#63e5b6}.note{font-size:18px;color:#bec3ba;margin:22px 0 0}
-    .core{position:absolute;right:2px;top:62px;width:550px;height:513px;object-fit:contain}
-    .bottom{position:absolute;left:64px;bottom:43px;font-size:12px;color:#b8bbb6}
-    </style><div class="frame"><img class="brand" src="data:image/png;base64,${brand}" alt="Pal AI"><h1>让 AI 走出聊天框，<br>成为身边的<em>伙伴</em>。</h1><p class="note">我们用开源，让 AI 更接近日常。</p><img class="core" src="data:image/webp;base64,${core}" alt=""><span class="bottom">Cortico · Coopanion · Cortina</span></div></html>`);
-  await page
-    .locator("img")
-    .evaluateAll((images) =>
-      Promise.all(images.map((image) => image.decode())),
-    );
-  await page.screenshot({
-    path: new URL("../public/images/og.png", import.meta.url).pathname,
-  });
-  console.log("Generated public/images/og.png (1200 × 630).");
-} finally {
-  await browser.close();
+const hero = html.match(
+  /<div\b[^>]*data-pixel-world="hero"[^>]*>([\s\S]*?)<\/div>/,
+)?.[1];
+const heroSvg = hero?.match(/<svg\b[\s\S]*?<\/svg>/)?.[0];
+if (!heroSvg) {
+  throw new Error(
+    "Hero pixel SVG not found in dist/index.html. Run pnpm build first.",
+  );
 }
+
+// Resolve browser-only inherited colors before passing the SVG to librsvg.
+const pal = (
+  await readFile(
+    new URL("../public/images/pixel-pal.svg", import.meta.url),
+    "utf8",
+  )
+).replace(
+  /<svg\b[^>]*>/,
+  '<svg x="290" y="165" width="144" height="156" viewBox="0 0 144 156" fill="none">',
+);
+
+const world = heroSvg
+  .replace(
+    /<svg\b[^>]*>/,
+    '<svg x="500" y="44" width="720" height="540" viewBox="0 0 720 540" fill="none">',
+  )
+  .replace(/\sdata-[\w-]+(?:="[^"]*")?/g, "")
+  .replaceAll("var(--world-white)", palette.white)
+  .replaceAll("var(--world-dark)", palette.dark)
+  .replaceAll("var(--world-platform)", palette.platform)
+  .replaceAll("var(--world-accent)", palette.accent)
+  .replaceAll("currentColor", palette.white)
+  .replace(/<\/svg>$/, `${pal}</svg>`);
+
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <pattern id="page-dots" width="28" height="28" patternUnits="userSpaceOnUse">
+      <rect width="1" height="1" fill="${palette.white}" opacity=".11"/>
+    </pattern>
+  </defs>
+  <style>
+    text { font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif; }
+    .mono, .world-annotation text { font-family: "Courier New", monospace; }
+    .world-annotation { font-size: 9px; letter-spacing: 1.2px; }
+    .world-annotation text:not([fill]) { fill: ${palette.white}; }
+    .story-transient { opacity: 0; }
+  </style>
+  <rect width="1200" height="630" fill="${palette.background}"/>
+  <rect width="1200" height="630" fill="url(#page-dots)"/>
+
+  <g transform="translate(64 60)" fill="${palette.white}">
+    <path d="M3 0h12v3h3v21h-3v3H3v-3H0V3h3Zm0 3v21h12V3Zm30-3h12v3h3v21h-3v3H33v-3h-3V3h3Zm0 3v21h12V3Zm24-6h3v6h3v15h-3v6h-3v-6h3V3h-3Z"/>
+  </g>
+  <text x="147" y="81" class="mono" fill="${palette.white}" font-size="20" font-weight="bold" letter-spacing="1">PAL AI LAB</text>
+
+  <rect x="64" y="161" width="6" height="6" fill="${palette.accent}"/>
+  <text x="61" y="244" fill="${palette.white}" font-size="60" font-weight="600" letter-spacing="-2">让 AI，</text>
+  <text x="61" y="321" fill="${palette.accent}" font-size="57" font-weight="600" letter-spacing="-2">走进你的世界。</text>
+  <text x="64" y="373" fill="${palette.muted}" font-size="17">从持续感知，到日常陪伴，再到无限创造。</text>
+  <path d="M64 408h34v6H64Z" fill="${palette.accent}"/>
+
+  ${world}
+
+  <path d="M64 528h1072" stroke="${palette.white}" opacity=".15"/>
+  <text x="64" y="568" class="mono" fill="${palette.white}" font-size="15" letter-spacing=".5">CORTICO</text>
+  <rect x="160" y="559" width="4" height="4" fill="${palette.accent}"/>
+  <text x="185" y="568" class="mono" fill="${palette.white}" font-size="15" letter-spacing=".5">COOPANION</text>
+  <rect x="300" y="559" width="4" height="4" fill="${palette.accent}"/>
+  <text x="325" y="568" class="mono" fill="${palette.white}" font-size="15" letter-spacing=".5">CORTINA</text>
+</svg>`;
+
+const output = new URL("../public/images/og.png", import.meta.url);
+await sharp(Buffer.from(svg))
+  .png({ compressionLevel: 9, palette: true })
+  .toFile(output.pathname);
+console.log(`Generated ${output.pathname} (1200 × 630).`);

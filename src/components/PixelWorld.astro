@@ -1,0 +1,380 @@
+---
+interface Props {
+  scene?: "hero" | "cortico" | "coopanion" | "cortina" | "join";
+}
+
+const { scene = "hero" } = Astro.props;
+const id = `pixel-${scene}`;
+const stars = [
+  [77, 117, 1], [181, 68, 0.6], [602, 83, 0.7], [650, 255, 1],
+  [109, 353, 0.6], [581, 429, 0.8], [327, 49, 0.5], [467, 88, 0.5],
+] as const;
+const isHero = scene === "hero";
+---
+
+<div class:list={["pixel-world", `pixel-world--${scene}`]} data-pixel-world={scene} aria-hidden="true">
+  <svg class="world-canvas" viewBox="0 0 720 540" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <pattern id={`${id}-dither`} width="12" height="12" patternUnits="userSpaceOnUse">
+        <rect width="3" height="3" fill="currentColor" opacity=".25" />
+        <rect x="6" y="6" width="3" height="3" fill="currentColor" opacity=".25" />
+      </pattern>
+      <pattern id={`${id}-floor`} width="48" height="24" patternUnits="userSpaceOnUse">
+        <path d="M0 12 24 0 48 12 24 24Z" stroke="currentColor" stroke-width="1" opacity=".13" />
+      </pattern>
+      <symbol id={`${id}-star`} viewBox="0 0 20 20">
+        <path d="M8 0h4v8h8v4h-8v8H8v-8H0V8h8Z" fill="currentColor" />
+      </symbol>
+      <symbol id={`${id}-diamond`} viewBox="0 0 30 48">
+        <path d="M12 0h6v6h6v12h6v12h-6v12h-6v6h-6v-6H6V30H0V18h6V6h6Z" fill="var(--world-accent)" />
+        <path d="M12 6h6v12h-6Zm-6 12h6v12H6Z" fill="var(--world-white)" />
+        <path d="M18 24h6v12h-6Zm-6 12h6v6h-6Z" fill="var(--world-dark)" opacity=".35" />
+      </symbol>
+      <symbol id={`${id}-plant`} viewBox="0 0 60 72">
+        <path d="M27 24h6v48h-6Z" fill="var(--world-white)" />
+        <path d="M27 18h6V6h6V0h12v18h-6v12H33v12h12V30h15v18h-6v6H33v12h-6V48H15v-6H9V24H0V12h15v6h6v12h6Z" fill="var(--world-accent)" />
+        <path d="M33 12h6v12h-6ZM9 18h6v6H9Zm30 30h12v6H39Z" fill="var(--world-white)" opacity=".6" />
+      </symbol>
+      <symbol id={`${id}-sprout`} viewBox="0 0 36 36">
+        <path d="M15 18h6v18h-6ZM3 6h12v6h6v12H9v-6H3Zm18 6V6h6V0h9v12h-6v6h-9Z" fill="var(--world-accent)" />
+      </symbol>
+      <symbol id={`${id}-mascot`} viewBox="0 0 144 156">
+        <path d="M30 6h72v6h18v12h12v18h6v78h-12v12h-12v18H96v-12H42v12H24v-18H12v-12H6V42h6V24h18Z" fill="var(--world-dark)" />
+        <path d="M30 0h72v6h18v12h12v18h6v84h-6v12h-12v24H96v-18H42v18H18v-24H6v-12H0V36h6V18h12V6h12Zm6 6v6H24v12H12v18H6v72h6v12h12v24h12v-18h66v18h12v-24h12v-12h6V42h-6V24h-12V12H96V6Z" fill="var(--world-white)" />
+        <g class="mascot-eyes">
+          <path d="M30 48h18v6h6v30h-6v6H30v-6h-6V54h6Zm0 6v30h18V54Zm48-6h18v6h6v30h-6v6H78v-6h-6V54h6Zm0 6v30h18V54Z" fill="var(--world-white)" />
+          <path d="M114 42h6v12h6v24h-6v12h-6V78h6V54h-6Z" fill="var(--world-white)" />
+        </g>
+        <path d="M60 108h18v6H60Z" fill="var(--world-accent)" />
+        <path d="M12 96h6v6h-6Zm6 6h6v6h-6Z" fill="var(--world-white)" opacity=".25" />
+      </symbol>
+      <symbol id={`${id}-mini-pal`} viewBox="0 0 72 78">
+        <path d="M18 0h36v6h12v12h6v42h-6v18H54V66H18v12H6V60H0V18h6V6h12Z" fill="var(--world-white)" />
+        <path d="M18 24h6v18h-6Zm24 0h6v18h-6Zm-12 30h12v6H30Z" fill="var(--world-dark)" />
+        <path d="M6 48h6v6H6Zm54 0h6v6h-6Z" fill="var(--world-accent)" />
+      </symbol>
+      <symbol id={`${id}-cube`} viewBox="0 0 60 66">
+        <path d="m30 0 30 15v36L30 66 0 51V15Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="3" />
+        <path d="m1 15 29 15 29-15M30 30v34" stroke="var(--world-white)" stroke-width="3" />
+        <path d="m30 7 17 8-17 9-17-9Z" fill="var(--world-accent)" />
+        <path d="M8 28v18l14 7" stroke="var(--world-white)" stroke-width="3" opacity=".3" />
+      </symbol>
+    </defs>
+
+    <g class="world-stars assembly" style={`--reveal-delay:${isHero ? "6.2s" : ".8s"}`}>
+      {stars.map(([x, y, scale], index) => (
+        <use href={`#${id}-star`} x={x} y={y} width={20 * scale} height={20 * scale} class="twinkle" style={`--twinkle-delay:${index * -.8}s`} opacity={index % 2 ? ".25" : ".65"} />
+      ))}
+      <rect x="144" y="221" width="4" height="4" fill="currentColor" opacity=".5" />
+      <rect x="611" y="359" width="4" height="4" fill="currentColor" opacity=".4" />
+      <rect x="248" y="95" width="4" height="4" fill="currentColor" opacity=".5" />
+      <rect x="551" y="179" width="4" height="4" fill="var(--world-accent)" />
+    </g>
+
+    <g class="world-ground assembly" style={`--reveal-delay:${isHero ? "3s" : ".1s"}`}>
+      <path d="m183 409 169-83 191 83-179 91Z" fill={`url(#${id}-dither)`} opacity=".38" />
+      <path d="m186 403 12 6m13 6 12 6m13 6 12 6m13 6 12 6m13 6 12 6m13 6 12 6m13 6 12 6m27 0 12-6m13-6 12-6m13-6 12-6m13-6 12-6m13-6 12-6m13-6 12-6m13-6 12-6" stroke="currentColor" stroke-width="2" opacity=".17" />
+    </g>
+
+    <g class="island assembly" data-story-island data-story-part="island" style={`--reveal-delay:${isHero ? "3.1s" : ".2s"}`}>
+      <path d="M174 328h18v-12h24v-12h24v-12h24v-12h24v-12h24v-12h24v-12h24v12h24v12h24v12h24v12h24v12h24v12h24v12h24v12h18v48h-18v12h-24v12h-24v12h-24v12h-24v12h-24v12h-24v12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-18Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="2" />
+      <path d="m175 329 177 89 192-79v36h-18v12h-24v12h-24v12h-24v12h-24v12h-24v12h-24v12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-18Z" fill={`url(#${id}-dither)`} />
+      <path d="M174 328h18v-12h24v-12h24v-12h24v-12h24v-12h24v-12h24v-12h24v12h24v12h24v12h24v12h24v12h24v12h24v12h24v12h18v12h-18v12h-24v12h-24v12h-24v12h-24v12h-24v12h-24v12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-24v-12h-18Z" fill="var(--world-platform)" stroke="var(--world-white)" stroke-width="2" />
+      <path d="m184 332 172-86 178 91-178 87Z" fill={`url(#${id}-floor)`} />
+      <path d="M194 330h18v-12h24v-12h24v-12h24v-12h24v-12h24v-12h18" stroke="var(--world-white)" stroke-width="3" opacity=".4" />
+      <path d="M352 427v35m24-48v34m24-45v33m24-45v33m24-45v33m24-45v33m24-45v33m24-45v33" stroke="var(--world-white)" stroke-width="2" opacity=".22" />
+      <path d="M215 374h6v6h-6Zm24 12h6v6h-6Zm24 12h6v6h-6Zm24 12h6v6h-6Z" fill="var(--world-accent)" opacity=".8" />
+    </g>
+
+    {isHero && (
+      <>
+        <rect data-traveler-anchor x="290" y="165" width="144" height="156" fill="none" />
+        <g class="assembly" style="--reveal-delay:3.2s">
+          <path d="m293 324 58-27 70 29-60 29Z" fill="var(--world-dark)" opacity=".8" />
+        </g>
+        <g class="intro-seed transient story-transient" data-story-seed>
+          <path d="M364 268h8v8h-8Z" fill="var(--world-accent)" />
+          <path d="M352 258h4v4h-4Zm-9-8h3v3h-3Z" fill="var(--world-white)" opacity=".4" />
+        </g>
+        <g class="intro-impact transient story-transient" data-story-impact>
+          <path d="m413 354 18-9 18 9-18 9Z" stroke="var(--world-accent)" stroke-width="3" />
+          <path d="M405 345h4v4h-4Zm48 0h4v4h-4Zm-24-15h4v4h-4Z" fill="var(--world-accent)" />
+        </g>
+        <g class="assembly grow-in" data-story-growth data-story-part="sprouts" style="--reveal-delay:4.1s">
+          <use href={`#${id}-plant`} x="225" y="242" width="48" height="58" />
+        </g>
+        <g class="assembly grow-in" style="--reveal-delay:4.6s">
+          <g class="garden-sprout"><use href={`#${id}-sprout`} x="422" y="343" width="28" height="28" /></g>
+          <path d="M278 335h18v6h-18Zm-6 6h30v6h-30Zm36 29h12v6h-12Z" fill="var(--world-white)" opacity=".3" />
+        </g>
+        <g class="assembly" data-story-pathways style="--reveal-delay:5.2s">
+          <path d="M263 137h-71v61h-61v53m323-87h104v81h45v84" stroke="currentColor" stroke-width="2" stroke-dasharray="3 9" opacity=".25" />
+          <path d="m83 275 48-24 48 24v18l-48 24-48-24Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="2" />
+          <path d="m83 275 48 24 48-24m-48 24v18" stroke="var(--world-white)" stroke-width="2" />
+          <use href={`#${id}-cube`} x="111" y="226" width="40" height="44" />
+        </g>
+        <g class="assembly" style="--reveal-delay:5.6s">
+          <path d="m527 165 42-21 42 21v18l-42 21-42-21Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="2" />
+          <path d="m527 165 42 21 42-21m-42 21v18" stroke="var(--world-white)" stroke-width="2" />
+        </g>
+        <g class="assembly" data-story-crystal style="--reveal-delay:6.2s">
+          <g class="garden-crystal"><use href={`#${id}-diamond`} x="462" y="274" width="24" height="39" /></g>
+          <use href={`#${id}-diamond`} x="558" y="112" width="22" height="35" />
+          <path d="M463 256v-6m24 13 6-6m-43 18h-7" stroke="var(--world-accent)" stroke-width="3" class="crystal-rays" />
+        </g>
+        <g class="assembly friend-arrival" data-story-friend data-story-part="friend" style="--reveal-delay:6.8s">
+          <g class="garden-friend"><use href={`#${id}-mini-pal`} x="220" y="317" width="42" height="46" /></g>
+        </g>
+        <g class="assembly" style="--reveal-delay:7.3s">
+          <path class="garden-heart" d="M231 286h6v6h6v-6h6v6h6v6h-6v6h-6v6h-6v-6h-6v-6h-6v-6h6Z" fill="var(--world-accent)" />
+        </g>
+        <g class="garden-seed transient story-transient" data-story-loop="seed-to-friend">
+          <rect x="365" y="271" width="6" height="6" fill="var(--world-accent)" />
+        </g>
+        <g class="garden-ripple transient story-transient"><path d="m412 355 21-10 21 10-21 10Z" stroke="var(--world-accent)" stroke-width="2" /></g>
+        <g class="garden-firefly transient story-transient"><path d="M432 343h5v5h-5Z" fill="var(--world-white)" /></g>
+      </>
+    )}
+
+    {scene === "cortico" && (
+      <>
+        <rect data-traveler-anchor x="145" y="267" width="65" height="70" fill="none" />
+        <g class="assembly" style="--reveal-delay:.45s">
+          <path d="M235 322v-80h60m133 80v-80h-36M353 314v43h90v-33" stroke="var(--world-accent)" stroke-width="3" stroke-dasharray="5 7" opacity=".45" />
+          <path d="M302 130h108v12h12v12h12v132h-12v12H290v-12h-12V154h12v-12h12Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="3" />
+          <path d="M290 166h132m-132 96h132" stroke="var(--world-white)" stroke-width="2" opacity=".3" />
+          <g class="engine-awake" data-story-engine>
+            <path d="M335 187h42v12h12v36h-12v12h-42v-12h-12v-36h12Z" stroke="var(--world-accent)" stroke-width="4" />
+            <path d="M344 205h24v24h-24Z" fill="var(--world-accent)" />
+            <path d="M306 208h9m83 0h9m-101 18h9m83 0h9m-61-49v-7m20 7v-7m-20 85v-7m20 7v-7" stroke="var(--world-white)" stroke-width="3" opacity=".4" />
+          </g>
+          <rect x="301" y="148" width="5" height="5" fill="var(--world-accent)" />
+          <rect x="313" y="148" width="5" height="5" fill="var(--world-white)" opacity=".4" />
+          <rect x="325" y="148" width="5" height="5" fill="var(--world-white)" opacity=".4" />
+          <path d="M304 279h38m12 0h10m10 0h32" stroke="var(--world-accent)" stroke-width="4" class="engine-status" />
+        </g>
+        <g class="assembly" style="--reveal-delay:.9s">
+          <use href={`#${id}-cube`} x="209" y="284" width="48" height="53" />
+          <use href={`#${id}-cube`} x="425" y="296" width="48" height="53" />
+        </g>
+        <g class="assembly grow-in" style="--reveal-delay:4.4s">
+          <g class="engine-growth" data-story-response><use href={`#${id}-sprout`} x="342" y="348" width="30" height="30" /></g>
+        </g>
+        <g class="engine-input transient story-transient" data-story-signal><rect x="232" y="304" width="7" height="7" fill="var(--world-white)" /></g>
+        <g class="engine-output transient story-transient"><rect x="391" y="239" width="7" height="7" fill="var(--world-accent)" /></g>
+        <g class="engine-response transient story-transient"><path d="M445 283h5v5h-5Zm12-8h4v4h-4Zm-24 0h4v4h-4Z" fill="var(--world-accent)" /></g>
+      </>
+    )}
+
+    {scene === "coopanion" && (
+      <>
+        <rect data-traveler-anchor x="458" y="316" width="66" height="72" fill="none" />
+        <g class="assembly" style="--reveal-delay:.45s">
+          <path d="M214 149h280v169H214Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="3" />
+          <path d="M214 174h280" stroke="var(--world-white)" stroke-width="2" />
+          <path d="M336 320v24h-42v12h123v-12h-42v-24" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="3" />
+          <rect x="226" y="160" width="4" height="4" fill="var(--world-accent)" />
+          <rect x="237" y="160" width="4" height="4" fill="var(--world-white)" opacity=".4" />
+          <rect x="248" y="160" width="4" height="4" fill="var(--world-white)" opacity=".4" />
+          <path d="M234 202h93m-93 12h56m-56 12h71" stroke="currentColor" stroke-width="4" opacity=".2" />
+          <path d="M234 283h235m-235 14h110" stroke="currentColor" stroke-width="2" opacity=".12" />
+          <path class="desktop-cursor" d="M429 204v33l8-8 7 13 7-4-7-12h13Z" fill="var(--world-white)" />
+        </g>
+        <g class="assembly friend-arrival" style="--reveal-delay:1.25s" data-story-meeting>
+          <g class="desktop-friend"><use href={`#${id}-mini-pal`} x="337" y="227" width="72" height="78" /></g>
+        </g>
+        <g class="assembly" style="--reveal-delay:2.4s">
+          <g class="desktop-greeting" data-story-heart>
+            <path d="M376 94h60v6h6v42h-6v6h-36v12h-12v-12h-12v-6h-6v-42h6Z" fill="var(--world-accent)" />
+            <path d="M389 111h6v6h6v-6h6v6h6v6h-6v6h-6v6h-6v-6h-6v-6h-6v-6h6Z" fill="var(--world-dark)" />
+          </g>
+        </g>
+        <g class="assembly" style="--reveal-delay:.9s">
+          <use href={`#${id}-plant`} x="442" y="302" width="32" height="39" />
+          <path d="M241 338h24v6h6v18h-6v6h-24v-6h-6v-18h6Z" fill="var(--world-white)" />
+          <path d="M271 344h12v12h-12" stroke="var(--world-white)" stroke-width="4" />
+          <path class="steam" d="M245 328v-14h6v-12m9 26v-10h6v-12" stroke="var(--world-white)" stroke-width="3" opacity=".3" />
+        </g>
+        <g class="desktop-reply transient story-transient"><path d="M480 284h5v5h5v-5h5v5h5v5h-5v5h-5v5h-5v-5h-5v-5h-5v-5h5Z" fill="var(--world-accent)" /></g>
+      </>
+    )}
+
+    {scene === "cortina" && (
+      <>
+        <rect data-traveler-anchor x="162" y="298" width="65" height="70" fill="none" />
+        <g class="assembly" style="--reveal-delay:.45s">
+          <path d="M267 165h174v155H267Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="3" />
+          <path d="M282 151h144v14H282Zm0 169h144v14H282Z" fill="var(--world-white)" />
+          <path d="M296 198h117m-117 14h69m-69 14h96m-96 14h54" stroke="var(--world-white)" stroke-width="4" opacity=".25" />
+          <path d="m315 264-12 12 12 12m25-24 12 12-12 12m-9-29-8 34" stroke="var(--world-accent)" stroke-width="4" />
+          <path d="M369 284h37" stroke="var(--world-accent)" stroke-width="5" class="builder-cursor" />
+        </g>
+        <g class="assembly" style="--reveal-delay:1s">
+          <g class="builder-crystal"><use href={`#${id}-diamond`} x="220" y="223" width="24" height="39" /></g>
+        </g>
+        <g class="builder-signal transient story-transient" data-story-build-signal><rect x="229" y="239" width="7" height="7" fill="var(--world-accent)" /></g>
+        <g class="assembly build-in" style="--reveal-delay:2.7s"><use href={`#${id}-cube`} x="430" y="288" width="60" height="66" /></g>
+        <g class="assembly build-in" style="--reveal-delay:3.2s"><use href={`#${id}-cube`} x="430" y="224" width="60" height="66" /></g>
+        <g data-story-bridge>
+          <g class="assembly build-in" style="--reveal-delay:3.7s"><g class="bridge-step bridge-step--one"><path d="m267 354 24-12 24 12v12l-24 12-24-12Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="2" /><path d="m267 354 24 12 24-12m-24 12v12" stroke="var(--world-accent)" stroke-width="2" /></g></g>
+          <g class="assembly build-in" style="--reveal-delay:4.2s"><g class="bridge-step bridge-step--two"><path d="m315 365 24-12 24 12v12l-24 12-24-12Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="2" /><path d="m315 365 24 12 24-12m-24 12v12" stroke="var(--world-accent)" stroke-width="2" /></g></g>
+          <g class="assembly build-in" style="--reveal-delay:4.7s"><g class="bridge-step bridge-step--three"><path d="m363 352 24-12 24 12v12l-24 12-24-12Z" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="2" /><path d="m363 352 24 12 24-12m-24 12v12" stroke="var(--world-accent)" stroke-width="2" /></g></g>
+        </g>
+        <g class="builder-done transient story-transient"><path d="M455 202v-12m-6 6h12m-49 148v-8m-4 4h8" stroke="var(--world-accent)" stroke-width="3" /></g>
+      </>
+    )}
+
+    {scene === "join" && (
+      <>
+        <rect data-traveler-anchor x="421" y="291" width="72" height="78" fill="none" />
+        <g class="assembly" style="--reveal-delay:.45s">
+          <path d="M315 290V137h12v-24h12v-12h72v12h12v24h12v153" fill="var(--world-dark)" stroke="var(--world-white)" stroke-width="3" />
+          <path d="m308 292 59 29 78-38-22-10-56 26-38-18Z" fill="var(--world-white)" />
+          <path d="m367 321 78-38v12l-78 38-59-29v-12Z" fill="var(--world-white)" opacity=".4" />
+        </g>
+        <g class="assembly friend-arrival" style="--reveal-delay:1s" data-story-gathering>
+          <g class="join-friend join-friend--one"><use href={`#${id}-mini-pal`} x="235" y="267" width="60" height="65" /></g>
+        </g>
+        <g class="assembly friend-arrival" style="--reveal-delay:1.7s">
+          <g class="join-friend join-friend--two"><use href={`#${id}-mini-pal`} x="296" y="334" width="38" height="42" /></g>
+        </g>
+        <g class="assembly" style="--reveal-delay:2.7s" data-story-portal>
+          <path class="portal-rim" d="M331 285V142h12v-24h60v24h12v143" stroke="var(--world-accent)" stroke-width="4" />
+          <path d="M347 273V151h12v-17h30v17h12v122" fill="var(--world-accent)" opacity=".09" />
+          <path class="portal-light" d="M353 263V154h12v-14h18v14h12v109" fill="var(--world-accent)" opacity=".08" />
+        </g>
+        <g class="assembly" style="--reveal-delay:3.4s">
+          <path d="M360 185h6v6h6v-6h6v6h6v6h-6v6h-6v6h-6v-6h-6v-6h-6v-6h6Z" fill="var(--world-accent)" class="join-heart" />
+        </g>
+        <g class="assembly grow-in" style="--reveal-delay:1.2s">
+          <use href={`#${id}-sprout`} x="355" y="347" width="28" height="28" />
+          <use href={`#${id}-plant`} x="241" y="214" width="36" height="43" />
+        </g>
+        <g class="portal-sparks transient story-transient"><path d="M350 231h6v6h-6Zm32 23h6v6h-6Zm-13-94h4v4h-4Zm22 45h4v4h-4Z" fill="var(--world-accent)" /></g>
+      </>
+    )}
+  </svg>
+</div>
+
+<style>
+  .pixel-world {
+    --world-white: #e9e8df;
+    --world-dark: #252622;
+    --world-platform: #2e302a;
+    --world-accent: #d5f58c;
+    --cycle-delay: 7s;
+    width: 100%;
+    position: relative;
+    color: var(--world-white);
+    isolation: isolate;
+  }
+  .pixel-world--hero { --cycle-delay: 8s; }
+  .pixel-world--coopanion { --cycle-delay: .6s; }
+  .pixel-world--cortina { --cycle-delay: 1s; }
+  .pixel-world--join { --cycle-delay: 1s; }
+  .world-canvas { display: block; width: 100%; height: auto; overflow: visible; }
+  .transient { opacity: 0; }
+  .grow-in, .garden-sprout, .engine-growth { transform-box: fill-box; transform-origin: center bottom; }
+  .intro-impact, .garden-ripple, .engine-awake, .garden-crystal, .builder-crystal, .portal-light { transform-box: fill-box; transform-origin: center; }
+
+  /* A quiet, complete illustration is the default, including without JavaScript.
+     Only the active chapter gets a timeline, so leaving it cancels its story. */
+  :global(html[data-journey="ready"] .scene.is-active) .assembly { animation: world-assemble .5s steps(5, end) both; animation-delay: var(--reveal-delay, 0s); }
+  :global(html[data-journey="ready"] .scene.is-active) .grow-in { animation-name: plant-emerge; animation-duration: .7s; }
+  :global(html[data-journey="ready"] .scene.is-active) .friend-arrival { animation-name: friend-arrive; }
+  :global(html[data-journey="ready"] .scene.is-active) .build-in { animation-name: block-arrive; }
+  :global(html[data-journey="ready"] .scene.is-active) .pixel-world--hero .assembly { animation: none; }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .pixel-world--hero .assembly { animation: world-assemble .6s steps(6, end) both; animation-delay: var(--reveal-delay, 0s); }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .pixel-world--hero .grow-in { animation-name: plant-emerge; }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .pixel-world--hero .friend-arrival { animation-name: friend-arrive; }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .intro-seed { animation: first-seed .65s 2.4s steps(9, end) both; }
+  :global(html[data-journey="ready"][data-intro="playing"] .scene.is-active) .intro-impact { animation: seed-impact .8s 2.9s steps(5, end) both; }
+
+  /* Fourteen-second story beats share a clock. After the small chain of events,
+     the world rests; decorations do not all float or bounce together. */
+  :global(html[data-journey="ready"] .scene.is-active) :is(.garden-seed, .garden-ripple, .garden-sprout, .garden-firefly, .garden-crystal, .garden-friend, .garden-heart, .crystal-rays, .desktop-friend, .desktop-greeting, .desktop-reply, .desktop-cursor, .steam, .bridge-step, .builder-crystal, .builder-cursor, .builder-done, .join-friend, .portal-rim, .portal-light, .portal-sparks, .join-heart) {
+    animation-duration: 14s;
+    animation-timing-function: steps(8, end);
+    animation-delay: var(--cycle-delay);
+    animation-iteration-count: infinite;
+  }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-seed { animation-name: garden-seed; }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-ripple { animation-name: garden-ripple; }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-sprout { animation-name: garden-grow; }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-firefly { animation-name: garden-firefly; }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-crystal { animation-name: crystal-awake; }
+  :global(html[data-journey="ready"] .scene.is-active) .crystal-rays { animation-name: crystal-rays; }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-friend { animation-name: friend-hop; }
+  :global(html[data-journey="ready"] .scene.is-active) .garden-heart { animation-name: heart-reply; }
+
+  :global(html[data-journey="ready"] .scene.is-active) :is(.engine-input, .engine-awake, .engine-status, .engine-output, .engine-response, .engine-growth) { animation-duration: 14s; animation-timing-function: steps(9, end); animation-delay: 1s; animation-iteration-count: infinite; }
+  :global(html[data-journey="ready"] .scene.is-active) .engine-input { animation-name: signal-arrive; }
+  :global(html[data-journey="ready"] .scene.is-active) .engine-awake { animation-name: engine-awake; }
+  :global(html[data-journey="ready"] .scene.is-active) .engine-status { animation-name: engine-status; }
+  :global(html[data-journey="ready"] .scene.is-active) .engine-output { animation-name: signal-response; }
+  :global(html[data-journey="ready"] .scene.is-active) .engine-response { animation-name: response-spark; }
+  :global(html[data-journey="ready"] .scene.is-active) .engine-growth { animation-name: response-grow; }
+  :global(html[data-journey="ready"] .scene.is-active) .desktop-friend { animation-name: desktop-hop; }
+  :global(html[data-journey="ready"] .scene.is-active) .desktop-greeting { animation-name: desktop-greeting; }
+  :global(html[data-journey="ready"] .scene.is-active) .desktop-reply { animation-name: desktop-reply; }
+  :global(html[data-journey="ready"] .scene.is-active) .desktop-cursor { animation-name: cursor-hello; }
+  :global(html[data-journey="ready"] .scene.is-active) .steam { animation-name: steam-rise; }
+  :global(html[data-journey="ready"] .scene.is-active) .builder-signal { animation: builder-signal 14s 1s steps(10, end) infinite; }
+  :global(html[data-journey="ready"] .scene.is-active) .builder-crystal { animation-name: builder-crystal; }
+  :global(html[data-journey="ready"] .scene.is-active) .builder-cursor { animation-name: builder-cursor; }
+  :global(html[data-journey="ready"] .scene.is-active) .bridge-step { animation-name: step-settle; }
+  :global(html[data-journey="ready"] .scene.is-active) .bridge-step--two { animation-delay: calc(var(--cycle-delay) + .4s); }
+  :global(html[data-journey="ready"] .scene.is-active) .bridge-step--three { animation-delay: calc(var(--cycle-delay) + .8s); }
+  :global(html[data-journey="ready"] .scene.is-active) .builder-done { animation-name: builder-done; }
+  :global(html[data-journey="ready"] .scene.is-active) .join-friend { animation-name: join-hop; }
+  :global(html[data-journey="ready"] .scene.is-active) .join-friend--two { animation-delay: calc(var(--cycle-delay) + .6s); }
+  :global(html[data-journey="ready"] .scene.is-active) .portal-rim { animation-name: portal-open; }
+  :global(html[data-journey="ready"] .scene.is-active) .portal-light { animation-name: portal-light; }
+  :global(html[data-journey="ready"] .scene.is-active) .portal-sparks { animation-name: portal-sparks; }
+  :global(html[data-journey="ready"] .scene.is-active) .join-heart { animation-name: join-heart; }
+
+  @keyframes world-assemble { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes plant-emerge { from { opacity: 0; transform: scaleY(.05); } 40% { opacity: 1; } to { opacity: 1; transform: scaleY(1); } }
+  @keyframes friend-arrive { from { opacity: 0; transform: translate(-24px, -12px); } 65% { opacity: 1; transform: translate(-6px, -6px); } to { opacity: 1; transform: translate(0, 0); } }
+  @keyframes block-arrive { from { opacity: 0; transform: translateY(-38px); } 70% { opacity: 1; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes first-seed { 0% { opacity: 0; transform: translate(0, 0); } 12% { opacity: 1; } 40% { transform: translate(28px, -14px); } 90% { opacity: 1; transform: translate(63px, 80px); } 100% { opacity: 0; transform: translate(63px, 80px); } }
+  @keyframes seed-impact { 0% { opacity: 0; transform: scale(.1); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(3.4); } }
+  @keyframes garden-seed { 0%, 3% { opacity: 0; transform: translate(0, 0); } 4% { opacity: 1; } 7% { transform: translate(32px, -15px); } 11% { opacity: 1; transform: translate(66px, 80px); } 12%, 100% { opacity: 0; transform: translate(66px, 80px); } }
+  @keyframes garden-ripple { 0%, 10% { opacity: 0; transform: scale(.5); } 11% { opacity: .8; } 17%, 100% { opacity: 0; transform: scale(1.7); } }
+  @keyframes garden-grow { 0%, 11%, 24%, 100% { transform: scaleY(1); } 14% { transform: scaleY(.55); } 20% { transform: scaleY(1.2); } }
+  @keyframes garden-firefly { 0%, 21% { opacity: 0; transform: translate(0, 0); } 22% { opacity: 1; } 27% { transform: translate(5px, -35px); } 31% { opacity: 1; transform: translate(40px, -62px); } 32%, 100% { opacity: 0; transform: translate(40px, -62px); } }
+  @keyframes crystal-awake { 0%, 30%, 43%, 100% { transform: scale(1); opacity: 1; } 34% { transform: scale(1.2); opacity: .65; } 38% { transform: scale(1.1); opacity: 1; } }
+  @keyframes crystal-rays { 0%, 30%, 44%, 100% { opacity: .15; } 34%, 39% { opacity: 1; } }
+  @keyframes friend-hop { 0%, 40%, 48%, 100% { transform: translateY(0); } 43%, 46% { transform: translateY(-10px); } }
+  @keyframes heart-reply { 0%, 47%, 62%, 100% { opacity: .45; transform: translateY(0); } 49%, 55% { opacity: 1; transform: translateY(-7px); } }
+  @keyframes signal-arrive { 0%, 1% { opacity: 0; transform: translate(0, 0); } 2% { opacity: 1; } 5% { transform: translate(0, -65px); } 8% { opacity: 1; transform: translate(60px, -65px); } 9%, 100% { opacity: 0; transform: translate(60px, -65px); } }
+  @keyframes engine-awake { 0%, 8%, 25%, 100% { opacity: .4; transform: scale(1); } 11%, 16% { opacity: 1; transform: scale(1.07); } 13%, 19% { opacity: .75; transform: scale(1); } }
+  @keyframes engine-status { 0%, 8%, 30%, 100% { opacity: .35; } 11%, 24% { opacity: 1; } }
+  @keyframes signal-response { 0%, 16% { opacity: 0; transform: translate(0, 0); } 17% { opacity: 1; } 20% { transform: translate(33px, 0); } 23% { opacity: 1; transform: translate(33px, 67px); } 24%, 100% { opacity: 0; transform: translate(33px, 67px); } }
+  @keyframes response-spark { 0%, 23%, 32%, 100% { opacity: 0; transform: translateY(0); } 24%, 28% { opacity: 1; transform: translateY(-8px); } }
+  @keyframes response-grow { 0%, 25%, 36%, 100% { transform: scaleY(1); } 27% { transform: scaleY(.5); } 33% { transform: scaleY(1.2); } }
+  @keyframes desktop-hop { 0%, 6%, 16%, 100% { transform: translateY(0); } 9%, 13% { transform: translateY(-10px); } }
+  @keyframes desktop-greeting { 0%, 17%, 46%, 100% { transform: translateY(0); opacity: .7; } 20%, 36% { transform: translateY(-6px); opacity: 1; } }
+  @keyframes desktop-reply { 0%, 30%, 53%, 100% { opacity: 0; transform: translateY(3px); } 33%, 43% { opacity: 1; transform: translateY(-8px); } }
+  @keyframes cursor-hello { 0%, 4%, 24%, 100% { transform: translate(0, 0); } 9%, 15% { transform: translate(-8px, 8px); } }
+  @keyframes steam-rise { 0%, 55%, 85%, 100% { opacity: .1; transform: translateY(0); } 70% { opacity: .4; transform: translateY(-6px); } }
+  @keyframes builder-signal { 0%, 1% { opacity: 0; transform: translate(0, 0); } 2% { opacity: 1; } 7% { transform: translate(40px, -36px); } 11% { opacity: 1; transform: translate(103px, 0); } 12%, 100% { opacity: 0; transform: translate(103px, 0); } }
+  @keyframes builder-crystal { 0%, 2%, 14%, 100% { transform: scale(1); } 6% { transform: scale(1.15); } }
+  @keyframes builder-cursor { 0%, 12%, 17%, 22%, 100% { opacity: .8; } 13%, 16%, 18%, 21% { opacity: .1; } }
+  @keyframes step-settle { 0%, 23%, 32%, 100% { transform: translateY(0); } 26% { transform: translateY(-8px); } 29% { transform: translateY(2px); } }
+  @keyframes builder-done { 0%, 37%, 49%, 100% { opacity: 0; } 39%, 43% { opacity: 1; } }
+  @keyframes join-hop { 0%, 7%, 17%, 100% { transform: translateY(0); } 10%, 14% { transform: translateY(-8px); } }
+  @keyframes portal-open { 0%, 18%, 52%, 100% { opacity: .65; } 23%, 42% { opacity: 1; } }
+  @keyframes portal-light { 0%, 20%, 53%, 100% { opacity: .04; transform: scaleX(1); } 27%, 43% { opacity: .22; transform: scaleX(1.15); } }
+  @keyframes portal-sparks { 0%, 23% { opacity: 0; transform: translateY(15px); } 27%, 42% { opacity: .8; } 51%, 100% { opacity: 0; transform: translateY(-33px); } }
+  @keyframes join-heart { 0%, 32%, 58%, 100% { opacity: .5; transform: translateY(0); } 38%, 49% { opacity: 1; transform: translateY(-6px); } }
+
+  :global(html[data-paused="true"]) .pixel-world * { animation: none !important; }
+  :global(html[data-paused="true"]) .pixel-world .assembly { opacity: 1; transform: none; }
+  :global(html[data-paused="true"]) .pixel-world .transient { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .pixel-world * { animation: none !important; }
+    .assembly { opacity: 1; transform: none; }
+    .transient { opacity: 0; }
+  }
+</style>

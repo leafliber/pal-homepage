@@ -1,0 +1,384 @@
+.journey-traveler {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+}
+html[data-journey="ready"] .journey-traveler {
+  display: block;
+}
+.journey-traveler svg {
+  width: 100%;
+  height: auto;
+}
+/* One protagonist carries the story between SVG scenes. Coordinates come from
+   the active SVG anchor, so the character stays on its island at every size. */
+[data-journey][data-active-scene] .journey-traveler {
+  left: 0;
+  top: 0;
+  right: auto;
+  width: var(--traveler-width, 100px);
+  color: var(--text);
+  transform: translate(var(--traveler-x, 0px), var(--traveler-y, 0px));
+  transform-origin: center;
+  transition:
+    transform 850ms steps(16, end),
+    width 850ms steps(16, end),
+    left 850ms steps(16, end),
+    top 850ms steps(16, end),
+    opacity 250ms;
+  filter: none;
+  z-index: 8;
+}
+.journey-traveler .traveler-sprite {
+  filter: none;
+  overflow: visible;
+  animation: traveler-breathe 6s steps(4, end) infinite;
+}
+.traveler-eyes {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: traveler-blink 7s steps(1, end) infinite;
+}
+.traveler-shell {
+  opacity: 1;
+}
+.journey-traveler .traveler-thought {
+  position: absolute;
+  width: 26%;
+  right: -24%;
+  top: -8%;
+  opacity: 0;
+  filter: none;
+}
+.traveler-signal {
+  position: absolute;
+  left: 43%;
+  top: 83%;
+  width: 8%;
+  aspect-ratio: 1;
+  background: var(--accent);
+  opacity: 0;
+}
+@keyframes traveler-breathe {
+  0%,
+  75%,
+  100% {
+    transform: translateY(0);
+  }
+  35%,
+  55% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes traveler-blink {
+  0%,
+  43%,
+  48%,
+  100% {
+    transform: scaleY(1);
+  }
+  44%,
+  46% {
+    transform: scaleY(0.08);
+  }
+}
+@keyframes traveler-wake {
+  0%,
+  18% {
+    transform: scaleY(0.06);
+    opacity: 0.4;
+  }
+  37% {
+    transform: scaleY(0.45);
+    opacity: 1;
+  }
+  56% {
+    transform: scaleY(0.08);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+@keyframes traveler-look {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25%,
+  48% {
+    transform: translateX(-5px);
+  }
+  70%,
+  90% {
+    transform: translateX(5px);
+  }
+}
+@keyframes traveler-form {
+  from {
+    opacity: 0;
+    clip-path: inset(100% 0 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0);
+  }
+}
+@keyframes traveler-send {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  25% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+@keyframes traveler-greet {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  22%,
+  60% {
+    transform: rotate(-7deg) translateY(-6px);
+  }
+  40%,
+  78% {
+    transform: rotate(6deg) translateY(-8px);
+  }
+}
+
+/* Keep the art's coordinate system still. Objects inside it build the scene. */
+html[data-journey="ready"] .scene.is-active .scene-art,
+html[data-journey="ready"]
+  [data-journey][data-direction="backward"]
+  .scene.is-active
+  .scene-art {
+  animation: none;
+  transform: none;
+}
+.scene-bottom {
+  justify-content: flex-end;
+}
+.join-scene .scene-bottom {
+  justify-content: space-between;
+}
+.capability-path li {
+  flex-direction: row;
+  align-items: center;
+}
+.capability-path li::before {
+  content: "";
+  display: block;
+  width: 3px;
+  height: 3px;
+  background: var(--accent);
+}
+.journey-fraction {
+  margin-left: 0;
+}
+.scene-art {
+  padding-bottom: 0;
+}
+
+/* The opening starts with silence, then eyes. Useful content arrives promptly
+   while the remaining visual story continues; keyboard navigation stays usable. */
+html[data-intro="playing"] .site-header,
+html[data-intro="playing"] .journey-bar,
+html[data-intro="playing"] .world-grid,
+html[data-intro="playing"] .background-cross,
+html[data-intro="playing"] .hero-scene .scene-bottom {
+  transition: opacity 500ms steps(6, end);
+}
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"]
+  )
+  .site-header,
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"]
+  )
+  .journey-bar,
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"],
+    [data-intro-phase="look"]
+  )
+  .world-grid,
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"],
+    [data-intro-phase="look"]
+  )
+  .background-cross,
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"],
+    [data-intro-phase="look"]
+  )
+  .hero-copy,
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"],
+    [data-intro-phase="look"]
+  )
+  .hero-scene
+  .scene-bottom {
+  opacity: 0 !important;
+  transition: none !important;
+}
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"],
+    [data-intro-phase="look"]
+  )
+  [data-journey][data-active-scene]
+  .journey-traveler {
+  left: 50%;
+  top: 45%;
+  width: 144px;
+  transform: translate(-50%, -50%);
+  transition: none;
+}
+html[data-intro-phase="blank"]
+  [data-journey][data-active-scene]
+  .journey-traveler {
+  opacity: 0;
+}
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"],
+    [data-intro-phase="look"],
+    [data-intro-phase="signal"]
+  )
+  .traveler-shell,
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"]
+  )
+  .traveler-smile {
+  opacity: 0;
+}
+html[data-intro="playing"] .traveler-sprite {
+  animation: none;
+}
+html[data-intro-phase="wake"] .traveler-eyes {
+  animation: traveler-wake 900ms steps(6, end) both;
+}
+html[data-intro-phase="look"] .traveler-eyes {
+  animation: traveler-look 900ms steps(4, end) both;
+}
+html[data-intro-phase="look"] .traveler-thought {
+  opacity: 1;
+}
+html[data-intro-phase="signal"] .traveler-signal {
+  animation: traveler-send 900ms steps(7, end) both;
+}
+html[data-intro-phase="build"] .traveler-shell {
+  animation: traveler-form 700ms steps(8, end) both;
+}
+html[data-intro-phase="meet"] .traveler-sprite {
+  animation: traveler-greet 1600ms steps(8, end) both;
+}
+html[data-intro="playing"]:is(
+    [data-intro-phase="signal"],
+    [data-intro-phase="build"],
+    [data-intro-phase="meet"]
+  )
+  .hero-copy {
+  animation: scene-in 800ms steps(10, end) both;
+}
+html[data-intro="playing"]:is(
+    [data-intro-phase="blank"],
+    [data-intro-phase="wake"]
+  )
+  :is(.site-header, .journey-bar):focus-within,
+html[data-intro="playing"] .hero-copy:focus-within {
+  opacity: 1 !important;
+}
+
+/* Without JavaScript, a local static actor fills the hero's reserved space. */
+html:not([data-journey="ready"]) [data-pixel-world="hero"]::after {
+  content: "";
+  position: absolute;
+  left: 40.3%;
+  top: 30.6%;
+  width: 20%;
+  aspect-ratio: 144 / 156;
+  background: url("/images/pixel-pal.svg") center / contain no-repeat;
+}
+@media (max-width: 760px) {
+  html[data-journey="ready"] .scene {
+    padding-top: 42px;
+  }
+  .hero-scene .scene-inner {
+    gap: 26px;
+  }
+  .scene-inner,
+  .project-scene .scene-inner {
+    align-content: center;
+  }
+  .scene-art,
+  html[data-journey="ready"] .scene-art {
+    max-width: 385px;
+  }
+  .project-scene .scene-bottom {
+    margin-top: 12px;
+  }
+  html[data-intro="playing"]:is(
+      [data-intro-phase="blank"],
+      [data-intro-phase="wake"],
+      [data-intro-phase="look"]
+    )
+    [data-journey][data-active-scene]
+    .journey-traveler {
+    width: 118px;
+    top: 43%;
+  }
+}
+@media (max-width: 760px) and (max-height: 800px) {
+  html[data-journey="ready"] .scene {
+    padding-top: 30px;
+  }
+  .scene-art,
+  html[data-journey="ready"] .scene-art {
+    max-width: 295px;
+  }
+  .hero-scene .scene-inner {
+    gap: 15px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-journey][data-active-scene] .journey-traveler {
+    transition: none;
+  }
+  .traveler-sprite,
+  .traveler-eyes,
+  .traveler-shell {
+    animation: none !important;
+  }
+}
+
+/* The glance ends beside the future island, before the first seed is emitted. */
+html[data-intro="playing"][data-intro-phase="look"]
+  [data-journey][data-active-scene]
+  .journey-traveler {
+  left: 0;
+  top: 0;
+  width: var(--traveler-width, 100px);
+  transform: translate(var(--traveler-x, 0px), var(--traveler-y, 0px));
+  transition:
+    transform 850ms steps(16, end),
+    width 850ms steps(16, end),
+    left 850ms steps(16, end),
+    top 850ms steps(16, end);
+}

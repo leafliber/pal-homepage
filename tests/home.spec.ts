@@ -1,26 +1,60 @@
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { organization, projects } from "../src/data/projects";
 
 const artifacts = path.resolve("artifacts");
-const projectLinks = [
-  {
-    id: "cortico",
-    name: "Cortico",
-    href: "https://github.com/Pal-AI-Lab/Cortico",
-  },
-  {
-    id: "coopanion",
-    name: "Coopanion",
-    href: "https://github.com/Pal-AI-Lab/Coopanion",
-  },
-  {
-    id: "cortina",
-    name: "Cortina",
-    href: "https://github.com/Pal-AI-Lab/Cortina",
-  },
-];
+const sceneIds = ["home", "projects", "coopanion", "cortina", "join"] as const;
+
+async function waitForJourney(page: Page) {
+  await expect(page.locator("html")).toHaveAttribute("data-journey", "ready");
+  await expect(page.locator("main[data-journey]")).toHaveCount(1);
+  await expect(page.locator("[data-scene]")).toHaveCount(sceneIds.length);
+}
+
+async function assertActiveScene(page: Page, index: number) {
+  const scene = page.locator(`#${sceneIds[index]}[data-scene]`);
+  await expect(page.locator("main[data-journey]")).toHaveAttribute(
+    "data-active-scene",
+    String(index),
+  );
+  await expect(scene).toBeVisible();
+  await expect(scene).not.toHaveAttribute("aria-hidden", "true");
+  await expect(scene).toHaveJSProperty("inert", false);
+  await expect(scene.getByRole("heading").first()).toBeInViewport();
+  for (const [otherIndex, id] of sceneIds.entries()) {
+    if (otherIndex === index) continue;
+    const other = page.locator(`#${id}[data-scene]`);
+    await expect(other).toHaveAttribute("aria-hidden", "true");
+    await expect(other).toHaveJSProperty("inert", true);
+  }
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+}
+
+async function nextScene(page: Page, index: number) {
+  await page.locator("[data-scene-next]").click();
+  await assertActiveScene(page, index);
+}
+
+async function swipeUp(page: Page, sceneId: string) {
+  // Space distinct gestures so they are not interpreted as one inertial swipe.
+  await page.waitForTimeout(300);
+  const start = { identifier: 1, clientX: 150, clientY: 380 };
+  const end = { identifier: 1, clientX: 150, clientY: 180 };
+  await page.dispatchEvent(`#${sceneId}`, "touchstart", {
+    touches: [start],
+    changedTouches: [start],
+  });
+  await page.dispatchEvent(`#${sceneId}`, "touchmove", {
+    touches: [end],
+    changedTouches: [end],
+  });
+  await page.dispatchEvent(`#${sceneId}`, "touchend", {
+    touches: [],
+    changedTouches: [end],
+  });
+}
 
 async function assertNoOverflow(page: Page) {
   const sizes = await page.evaluate(() => ({
@@ -36,56 +70,80 @@ async function assertNoOverflow(page: Page) {
   );
 }
 
-async function assertContent(page: Page) {
-  await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expect(page.getByRole("main")).toHaveCount(1);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "让 AI 走出聊天框",
-  );
-  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-  for (const project of projectLinks) {
-    const article = page.locator(`article#${project.id}`);
+async function assertSceneContent(page: Page, index: number) {
+  const scene = page.locator(`#${sceneIds[index]}[data-scene]`);
+  if (index === 0) {
+    await expect(scene.getByRole("heading", { level: 1 })).toHaveText(
+      /让\s*AI，\s*走进你的世界。/,
+    );
+    await expect(scene.locator("[data-pixel-world='hero']")).toBeVisible();
+  } else if (index <= projects.length) {
+    const project = projects[index - 1]!;
     await expect(
-      article.getByRole("heading", { name: project.name, exact: true }),
+      scene.getByRole("heading", { level: 2, name: project.name, exact: true }),
     ).toBeVisible();
-    await expect(article.locator("a")).toHaveAttribute("href", project.href);
-    await expect(article.locator(".project-description")).not.toBeEmpty();
+    const projectLink = scene.locator(`a[href="${project.href}"]`).first();
+    await expect(projectLink).toBeVisible();
+    await expect(projectLink).toBeInViewport();
+    await expect(scene).toContainText(project.description);
+  } else {
+    await expect(scene.getByRole("heading", { level: 2 })).toBeVisible();
+    await expect(
+      scene.locator(`a[href="${organization.contributionHref}"]`),
+    ).toBeVisible();
+    await expect(scene.locator(`a[href="${organization.href}"]`)).toBeVisible();
   }
-  await expect(page.locator("[data-core-still]")).toHaveAttribute("alt", /\S+/);
 }
 
-async function screenshot(page: Page, name: string) {
+async function expectPainted(locator: Locator, painted: boolean) {
+  await expect
+    .poll(() =>
+      locator.evaluate((element) => {
+        let current: Element | null = element;
+        while (current) {
+          const style = getComputedStyle(current);
+          if (
+            Number(style.opacity) <= 0.05 ||
+            style.visibility === "hidden" ||
+            style.display === "none"
+          ) return false;
+          current = current.parentElement;
+        }
+        return true;
+      }),
+    )
+    .toBe(painted);
+}
+
+async function assertTravelerAtAnchor(page: Page) {
+  await expect.poll(async () => {
+    const actor = await page.locator("[data-traveler]").boundingBox();
+    const anchor = await page.locator(".scene.is-active [data-traveler-anchor]").boundingBox();
+    if (!actor || !anchor) return Infinity;
+    return Math.max(
+      Math.abs(actor.x - anchor.x),
+      Math.abs(actor.y - anchor.y),
+      Math.abs(actor.width - anchor.width),
+      Math.abs(actor.height - anchor.height),
+    );
+  }, { message: "the shared traveler must settle onto the active SVG anchor" }).toBeLessThanOrEqual(1);
+}
+
+async function startControlledIntro(page: Page) {
+  const now = new Date("2026-09-29T12:00:00Z");
+  await page.clock.install({ time: now });
+  await page.clock.pauseAt(new Date(now.getTime() + 1_000));
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForJourney(page);
+}
+
+async function screenshot(page: Page, name: string, animations: "disabled" | "allow" = "disabled") {
   await mkdir(artifacts, { recursive: true });
   await page.screenshot({
-    path: path.join(artifacts, `simplified-${name}.png`),
+    path: path.join(artifacts, `pixel-${name}.png`),
     fullPage: true,
-    animations: "disabled",
+    animations,
   });
-}
-
-async function assertSignalCycle(page: Page, keyboard = false) {
-  const core = page.locator("[data-living-core]");
-  const signal = page.locator("[data-core-signal]");
-  const description = page.locator("[data-core-description]");
-  if (keyboard) {
-    await signal.focus();
-    await page.keyboard.press("Enter");
-  } else {
-    await signal.click();
-  }
-  let previousDescription: string | null | undefined;
-  for (const phase of ["sense", "connect", "respond"]) {
-    await expect(core).toHaveAttribute("data-core-phase", phase);
-    await expect(description).not.toBeEmpty();
-    const currentDescription = await description.textContent();
-    expect(currentDescription, `${phase} must explain the visible stage`).not.toBe(
-      previousDescription,
-    );
-    previousDescription = currentDescription;
-  }
-  await expect(core).toHaveAttribute("data-core-phase", "rest");
-  await expect(description).not.toHaveText(previousDescription!);
 }
 
 for (const viewport of [
@@ -94,72 +152,193 @@ for (const viewport of [
   { width: 390, height: 844, name: "mobile-390" },
   { width: 320, height: 740, name: "narrow-320" },
 ]) {
-  test(`${viewport.width}px layout: real content, no overflow, local images and screenshot`, async ({
+  test(`${viewport.width}px: every scene has readable content and fits the viewport`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const response = await page.goto("/");
     expect(response?.status()).toBe(200);
-    await assertContent(page);
-    await page.waitForLoadState("networkidle");
-    await assertNoOverflow(page);
-    const images = page.locator("img");
-    for (const image of await images.all()) {
-      await image.scrollIntoViewIfNeeded();
-      await expect(image).toHaveJSProperty("complete", true);
-      expect(
-        await image.evaluate((node: HTMLImageElement) => node.naturalWidth),
-      ).toBeGreaterThan(0);
+    await waitForJourney(page);
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
+    await expect(page.getByRole("main")).toHaveCount(1);
+    await expect(page.locator("h1")).toHaveCount(1);
+    for (let index = 0; index < sceneIds.length; index += 1) {
+      if (index > 0) await nextScene(page, index);
+      await assertActiveScene(page, index);
+      await assertSceneContent(page, index);
+      await assertNoOverflow(page);
+      await screenshot(page, `${viewport.name}-${sceneIds[index]}`);
     }
-    await page.evaluate(() => window.scrollTo(0, 0));
-    const pause = page.locator("[data-core-pause]");
-    if (await pause.isVisible()) await pause.click();
-    if (viewport.width < 768) {
-      await expect(page.locator("[data-core-still]")).toBeVisible();
-      await expect(page.locator("canvas")).toHaveCount(0);
-    }
-    await screenshot(page, viewport.name);
   });
 }
 
-test("primary links, keyboard anchor navigation and accessible landmarks", async ({
+test("paging moves through the game world while its background and document stay fixed", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await waitForJourney(page);
+  await assertActiveScene(page, 0);
+  await expect(page.locator("[data-scene-prev]")).toBeDisabled();
+  const background = page.locator("[data-world-background]");
+  await expect(background).toHaveCSS("position", "fixed");
+  const initialBackground = await background.boundingBox();
+  expect(initialBackground).not.toBeNull();
+
+  await page.keyboard.press("PageDown", { delay: 750 });
+  await assertActiveScene(page, 1);
+  await expect(page).toHaveURL(/\/#projects$/);
+  await page.keyboard.press("ArrowDown", { delay: 750 });
+  await assertActiveScene(page, 2);
+  await page.keyboard.press("PageUp", { delay: 750 });
+  await assertActiveScene(page, 1);
+  await page.keyboard.press("ArrowUp", { delay: 750 });
+  await assertActiveScene(page, 0);
+
+  // A single wheel gesture advances one complete scene, never a partial scroll.
+  await page.mouse.move(100, 400);
+  await page.mouse.wheel(0, 650);
+  await assertActiveScene(page, 1);
+  // Leave enough time for the gesture lock and inertial wheel stream to settle.
+  await page.waitForTimeout(800);
+  await page.mouse.wheel(0, -650);
+  await assertActiveScene(page, 0);
+  expect(await background.boundingBox()).toEqual(initialBackground);
+
+  for (let index = 1; index < sceneIds.length; index += 1) {
+    await nextScene(page, index);
+  }
+  await expect(page.locator("[data-scene-next]")).toBeDisabled();
+  await expect(page.locator("[data-scene-prev]")).toBeEnabled();
+  await page.locator("[data-scene-prev]").click();
+  await assertActiveScene(page, 3);
+  expect(await background.boundingBox()).toEqual(initialBackground);
+});
+
+test("scene links support keyboard navigation, direct URLs and browser history", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/");
-  const explore = page.getByRole("link", { name: "探索项目", exact: true });
-  await explore.focus();
+  await page.goto("/#cortina");
+  await waitForJourney(page);
+  await assertActiveScene(page, 3);
+  const projectsLink = page
+    .getByRole("navigation", { name: "主要导航" })
+    .locator('a[data-scene-link][href$="#projects"]');
+  await projectsLink.focus();
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/#projects$/);
-  await expect(page.locator("#projects-title")).toBeInViewport();
-  const position = await page
-    .locator("#projects-title")
-    .evaluate((heading) => ({
-      headingTop: heading.getBoundingClientRect().top,
-      headerBottom: document.querySelector("header")!.getBoundingClientRect()
-        .bottom,
-    }));
-  expect(
-    position.headingTop,
-    "fixed navigation must not cover the anchor title",
-  ).toBeGreaterThanOrEqual(position.headerBottom);
-  await expect(
-    page.getByRole("link", { name: /^访问 GitHub/ }),
-  ).toHaveAttribute("href", "https://github.com/Pal-AI-Lab");
-  await expect(page.getByRole("link", { name: /^参与构建/ })).toHaveAttribute(
-    "href",
-    "https://github.com/Pal-AI-Lab/Cortico/blob/main/CONTRIBUTING.md",
-  );
+  await assertActiveScene(page, 1);
+  await nextScene(page, 2);
+  await expect(page).toHaveURL(/\/#coopanion$/);
+  await page.goBack();
+  await assertActiveScene(page, 1);
+  await page.goBack();
+  await assertActiveScene(page, 3);
+  await page.goForward();
+  await assertActiveScene(page, 1);
   for (const link of await page.locator('a[target="_blank"]').all()) {
     await expect(link).toHaveAttribute("rel", /noopener/);
   }
 });
 
-test("mobile menu opens by keyboard, closes with Escape and restores focus", async ({
+test("inactive scenes cannot receive keyboard focus", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  await assertActiveScene(page, 1);
+  for (let step = 0; step < 20; step += 1) {
+    await page.keyboard.press("Tab");
+    const hiddenScene = await page.evaluate(
+      () =>
+        document.activeElement?.closest('[data-scene][aria-hidden="true"]')?.id,
+    );
+    expect(hiddenScene, "Tab must skip inactive game scenes").toBeUndefined();
+  }
+});
+
+test("the skip link focuses the current chapter without changing its deep link or history", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#cortina");
+  await waitForJourney(page);
+  const historyLength = await page.evaluate(() => history.length);
+  await page.getByRole("link", { name: "跳到主要内容" }).focus();
+  await page.keyboard.press("Enter");
+  await expect(
+    page.locator("#cortina").getByRole("heading", { level: 2 }),
+  ).toBeFocused();
+  await expect(page).toHaveURL(/\/#cortina$/);
+  expect(await page.evaluate(() => history.length)).toBe(historyLength);
+  await assertActiveScene(page, 3);
+});
+
+test("touch swipes change scenes, respect tall content, and reset scroll when returning", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/");
+  await waitForJourney(page);
+  await expect
+    .poll(
+      () =>
+        page
+          .locator("#home")
+          .evaluate((scene) => scene.scrollHeight - scene.clientHeight),
+      {
+        message:
+          "the standard mobile hero fits without a preliminary inner scroll",
+      },
+    )
+    .toBeLessThanOrEqual(2);
+  await swipeUp(page, "home");
+  await assertActiveScene(page, 1);
+
+  await page.setViewportSize({ width: 390, height: 500 });
+  const projectScene = page.locator("#projects");
+  expect(
+    await projectScene.evaluate(
+      (scene) => scene.scrollHeight - scene.clientHeight,
+    ),
+  ).toBeGreaterThan(2);
+  await swipeUp(page, "projects");
+  await expect(page.locator("main[data-journey]")).toHaveAttribute(
+    "data-active-scene",
+    "1",
+  );
+  // A synthetic swipe checks event routing; a real wheel scroll verifies native overflow.
+  await page.mouse.move(150, 300);
+  await page.mouse.wheel(0, 2000);
+  await expect
+    .poll(() => projectScene.evaluate((scene) => scene.scrollTop))
+    .toBeGreaterThan(0);
+  await expect
+    .poll(() =>
+      projectScene.evaluate(
+        (scene) => scene.scrollHeight - scene.clientHeight - scene.scrollTop,
+      ),
+    )
+    .toBeLessThanOrEqual(2);
+  await expect(page.locator("main[data-journey]")).toHaveAttribute(
+    "data-active-scene",
+    "1",
+  );
+  await swipeUp(page, "projects");
+  await assertActiveScene(page, 2);
+  await page.locator("[data-scene-prev]").click();
+  await assertActiveScene(page, 1);
+  await expect(projectScene).toHaveJSProperty("scrollTop", 0);
+});
+
+test("mobile navigation opens by keyboard, closes with Escape and restores focus", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await waitForJourney(page);
   const toggle = page.locator('[aria-controls="main-nav"]');
   const nav = page.getByRole("navigation", { name: "主要导航" });
   await expect(toggle).toBeVisible();
@@ -171,18 +350,22 @@ test("mobile menu opens by keyboard, closes with Escape and restores focus", asy
   await expect(nav).toBeVisible();
   await expect(nav.getByRole("link").first()).toBeFocused();
   await screenshot(page, "mobile-menu-390");
+  await page.mouse.wheel(0, 650);
+  await swipeUp(page, "home");
+  await assertActiveScene(page, 0);
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await page.keyboard.press("Escape");
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(nav).toBeHidden();
   await expect(toggle).toBeFocused();
   await toggle.click();
-  await nav.getByRole("link", { name: /^项目/ }).click();
+  await nav.locator('a[data-scene-link][href$="#projects"]').click();
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(page).toHaveURL(/\/#projects$/);
-  await expect(page.locator("#projects-title")).toBeInViewport();
+  await assertActiveScene(page, 1);
 });
 
-test("without JavaScript, desktop and mobile navigation and project content remain usable", async ({
+test("without JavaScript, all scenes, anchors and project links remain available", async ({
   browser,
   baseURL,
 }) => {
@@ -194,202 +377,237 @@ test("without JavaScript, desktop and mobile navigation and project content rema
     });
     const page = await context.newPage();
     await page.goto("/");
-    await assertContent(page);
-    await expect(
-      page.getByRole("navigation", { name: "主要导航" }),
-    ).toBeVisible();
+    await expect(page.locator("html")).not.toHaveAttribute(
+      "data-journey",
+      "ready",
+    );
+    await expect(page.locator("[data-scene]")).toHaveCount(sceneIds.length);
+    const fallbackImage = await page.locator('[data-pixel-world="hero"]').evaluate(
+      (element) => getComputedStyle(element, "::after").backgroundImage,
+    );
+    expect(fallbackImage).toContain("/images/pixel-pal.svg");
+    const fallbackSize = await page.evaluate(async () => {
+      const image = new Image();
+      image.src = "/images/pixel-pal.svg";
+      await image.decode();
+      return { width: image.naturalWidth, height: image.naturalHeight };
+    });
+    expect(fallbackSize.width).toBeGreaterThan(0);
+    expect(fallbackSize.height).toBeGreaterThan(0);
+    for (const id of sceneIds) {
+      const scene = page.locator(`#${id}[data-scene]`);
+      await expect(scene).toBeVisible();
+      await expect(scene).not.toHaveAttribute("inert");
+      await expect(scene).not.toHaveAttribute("aria-hidden", "true");
+    }
+    for (const [index, project] of projects.entries()) {
+      const scene = page.locator(`#${sceneIds[index + 1]}`);
+      await expect(
+        scene.getByRole("heading", { name: project.name, exact: true }),
+      ).toBeVisible();
+      await expect(scene.locator(`a[href="${project.href}"]`)).toBeVisible();
+    }
+    const nav = page.getByRole("navigation", { name: "主要导航" });
+    await expect(nav).toBeVisible();
     await expect(page.locator('[aria-controls="main-nav"]')).toBeHidden();
-    await expect(page.locator("[data-core-still]")).toBeVisible();
-    await expect(page.locator("canvas")).toHaveCount(0);
-    await expect(page.locator("[data-core-signal]")).toBeHidden();
-    await expect(page.locator("[data-core-pause]")).toBeHidden();
+    await expect(page.locator("[data-motion-toggle]")).toBeHidden();
+    await expect(page.locator("[data-scene-next]")).toBeHidden();
     await assertNoOverflow(page);
-    await page
-      .getByRole("navigation")
-      .getByRole("link", { name: /^项目/ })
-      .click();
+    await nav.locator('a[data-scene-link][href$="#projects"]').click();
     await expect(page).toHaveURL(/\/#projects$/);
+    await expect(
+      page.locator("#projects").getByRole("heading").first(),
+    ).toBeInViewport();
     await screenshot(page, `no-js-${width}`);
     await context.close();
   }
 });
 
-test("reduced motion keeps the matching static visual and avoids loading the 3D module", async ({
+test("the hero tells an automatic story: wake, seed, island, growth and a new friend", async ({
+  page,
+}) => {
+  // Use real time for this visual test: JavaScript fake clocks cannot advance
+  // CSS keyframes in lockstep. Record intro start before application code runs.
+  await page.addInitScript(() => {
+    const clock = window as Window & { __palIntroStartedAt?: number };
+    const observer = new MutationObserver(() => {
+      if (document.documentElement?.dataset.intro === "playing") {
+        clock.__palIntroStartedAt = performance.now();
+        observer.disconnect();
+      }
+    });
+    observer.observe(document, { subtree: true, attributes: true, attributeFilter: ["data-intro"] });
+  });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForJourney(page);
+  const at = (milliseconds: number) => page.waitForFunction((deadline) => {
+    const startedAt = (window as Window & { __palIntroStartedAt?: number }).__palIntroStartedAt;
+    return startedAt !== undefined && performance.now() - startedAt >= deadline;
+  }, milliseconds);
+  const root = page.locator("html");
+  const world = page.locator('[data-pixel-world="hero"]');
+  const traveler = page.locator("[data-traveler]");
+  const eyes = traveler.locator("[data-traveler-eyes]");
+  const shell = traveler.locator(".traveler-shell");
+  const island = world.locator('[data-story-part="island"]');
+  const sprouts = world.locator('[data-story-part="sprouts"]');
+  const friend = world.locator('[data-story-part="friend"]');
+
+  await at(100);
+  await expect(root).toHaveAttribute("data-intro", "playing");
+  await expect(root).toHaveAttribute("data-intro-phase", "blank");
+  await expectPainted(traveler, false);
+  await expectPainted(island, false);
+  await expectPainted(friend, false);
+  await expectPainted(page.locator(".hero-copy"), false);
+  await expectPainted(page.locator(".site-header"), false);
+  await screenshot(page, "story-0100-blank", "allow");
+
+  await at(1_000);
+  await expect(root).toHaveAttribute("data-intro-phase", "wake");
+  await expectPainted(eyes, true);
+  await expectPainted(shell, false);
+  await expectPainted(island, false);
+  await expectPainted(friend, false);
+  await expectPainted(page.locator(".hero-copy"), false);
+  await screenshot(page, "story-1000-eyes", "allow");
+
+  await at(1_600);
+  await expect(root).toHaveAttribute("data-intro-phase", "look");
+  await expectPainted(island, false);
+  await at(2_600);
+  await expect(root).toHaveAttribute("data-intro-phase", "signal");
+  await expectPainted(world.locator("[data-story-seed]"), true);
+  await expectPainted(island, false);
+  await expectPainted(friend, false);
+
+  await at(3_900);
+  await expect(root).toHaveAttribute("data-intro-phase", "build");
+  await expectPainted(island, true);
+  await expectPainted(sprouts, false);
+  await expectPainted(friend, false);
+  await screenshot(page, "story-4000-island", "allow");
+  await at(5_000);
+  await expectPainted(sprouts, true);
+  await expectPainted(friend, false);
+
+  await at(7_500);
+  await expect(root).toHaveAttribute("data-intro-phase", "meet");
+  await expectPainted(friend, true);
+  await at(8_800);
+  await expect(root).toHaveAttribute("data-intro-phase", "ready");
+  await expect(root).toHaveAttribute("data-intro", "done");
+  await expectPainted(island, true);
+  await expectPainted(friend, true);
+  await expectPainted(page.locator(".hero-copy"), true);
+  await expectPainted(page.locator(".site-header"), true);
+  await expect(world.locator("text, button, input, [role='button']")).toHaveCount(0);
+  await expect(page.locator(".build-sequence, .art-topline, .world-caption, .chapter-label, .hero-pixel-heading, .hero-footnote, .world-coordinate, .traveler-name")).toHaveCount(0);
+  await assertActiveScene(page, 0);
+  await assertTravelerAtAnchor(page);
+  await screenshot(page, "story-8800-ready", "allow");
+});
+
+test("leaving the opening early completes it and returning never hides the page again", async ({
+  page,
+}) => {
+  await startControlledIntro(page);
+  await page.clock.runFor(1_000);
+  await expect(page.locator("html")).toHaveAttribute("data-intro-phase", "wake");
+  await page.keyboard.press("PageDown");
+  await page.clock.runFor(800);
+  await expect(page.locator("html")).toHaveAttribute("data-intro", "done");
+  await assertActiveScene(page, 1);
+  await assertTravelerAtAnchor(page);
+  await page.keyboard.press("PageUp");
+  await page.clock.runFor(800);
+  await assertActiveScene(page, 0);
+  await expectPainted(page.locator(".hero-copy"), true);
+  await expectPainted(page.locator(".site-header"), true);
+  await expect(page.locator("html")).toHaveAttribute("data-intro-phase", "ready");
+  await assertTravelerAtAnchor(page);
+});
+
+test("a project deep link skips the opening even with motion enabled", async ({
+  page,
+}) => {
+  await page.goto("/#cortina");
+  await waitForJourney(page);
+  await expect(page.locator("html")).toHaveAttribute("data-intro", "done");
+  await expect(page.locator("html")).toHaveAttribute("data-intro-phase", "ready");
+  await assertActiveScene(page, 3);
+  await expectPainted(page.locator(".site-header"), true);
+});
+
+test("the motion control stops the world and resumes its automatic animation", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await waitForJourney(page);
+  const world = page.locator('[data-pixel-world="hero"]');
+  const toggle = page.locator("[data-motion-toggle]");
+  const runningAnimations = () =>
+    page.locator('[data-pixel-world="hero"], [data-traveler]').evaluateAll(
+      (elements) => elements.flatMap((element) =>
+        element.getAnimations({ subtree: true }),
+      ).filter((animation) => animation.playState === "running").length,
+    );
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect.poll(runningAnimations).toBeGreaterThan(0);
+  await toggle.focus();
+  await page.keyboard.press("Enter");
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("html")).toHaveAttribute("data-paused", "true");
+  await expect(page.locator("[data-motion-label]")).toHaveText("继续动画");
+  await expect(page.locator("html")).toHaveAttribute("data-intro", "done");
+  await expectPainted(page.locator(".hero-copy"), true);
+  await expectPainted(world.locator('[data-story-part="friend"]'), true);
+  await expect.poll(runningAnimations).toBe(0);
+  const pose = () => page.locator("[data-traveler] .traveler-sprite").boundingBox();
+  const pausedPose = await pose();
+  // Verify the paused visual remains stationary over time.
+  await page.waitForTimeout(350);
+  expect(await pose()).toEqual(pausedPose);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator("html")).toHaveAttribute("data-paused", "false");
+  await expect(page.locator("[data-motion-label]")).toHaveText("暂停动画");
+  await expect.poll(runningAnimations).toBeGreaterThan(0);
+});
+
+test("reduced motion shows complete worlds without automatic movement", async ({
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const scripts: string[] = [];
-  page.on("request", (request) => {
-    if (request.resourceType() === "script") scripts.push(request.url());
-  });
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
-  await expect(page.locator("[data-core-still]")).toBeVisible();
-  await expect(page.locator("canvas")).toHaveCount(0);
-  await expect(page.locator("[data-core-pause]")).toBeHidden();
-  expect(scripts.filter((url) => /core-webgl|three(?:[.-])/.test(url))).toEqual(
-    [],
-  );
-  const core = page.locator("[data-living-core]");
-  const initialDescription = await page.locator("[data-core-description]").textContent();
-  await page.locator("[data-core-signal]").focus();
-  await page.keyboard.press("Enter");
-  await expect(core).toHaveAttribute("data-core-phase", "respond");
-  await expect(page.locator("[data-core-description]")).not.toHaveText(initialDescription!);
-  await expect(page.locator("[data-core-pause]")).toBeHidden();
-  // Reduced-motion users get the result directly, without a timed phase loop.
-  await page.waitForTimeout(200);
-  await expect(core).toHaveAttribute("data-core-phase", "respond");
-  await screenshot(page, "reduced-motion-1440");
-});
-
-test("without WebGL, the matching static visual still explains a complete signal cycle", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const original = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (
-      this: HTMLCanvasElement,
-      type: string,
-      ...args: unknown[]
-    ) {
-      if (
-        type === "webgl" ||
-        type === "webgl2" ||
-        type === "experimental-webgl"
-      )
-        return null;
-      return Reflect.apply(original, this, [type, ...args]);
-    } as typeof original;
-  });
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
-  await expect(page.locator("[data-core-still]")).toBeVisible();
-  await expect(page.locator("canvas")).toHaveCount(0);
-  await expect(page.locator("[data-core-pause]")).toBeHidden();
-  await assertSignalCycle(page, true);
-  await expect(page.locator("[data-core-pause]")).toBeHidden();
-  expect(errors).toEqual([]);
-  await screenshot(page, "no-webgl-1440");
-});
-
-test("desktop enhancement has one canvas, a meaningful signal cycle and a working pause/resume control", async ({
-  page,
-}) => {
-  await page.addInitScript(() => {
-    const scope = window as unknown as Window & {
-      __palAnimationFrames: number;
-    };
-    scope.__palAnimationFrames = 0;
-    const original = window.requestAnimationFrame.bind(window);
-    window.requestAnimationFrame = (callback) =>
-      original((time) => {
-        scope.__palAnimationFrames += 1;
-        callback(time);
-      });
-  });
-  await page.goto("/");
-  const core = page.locator("[data-living-core]");
-  await expect(core).toHaveAttribute("data-webgl", "ready", {
-    timeout: 15_000,
-  });
-  await expect(page.locator("canvas")).toHaveCount(1);
-  await assertSignalCycle(page, true);
-  const pause = page.locator("[data-core-pause]");
-  await expect(pause).toBeVisible();
-  await pause.focus();
-  await page.keyboard.press("Enter");
-  await expect(pause).toHaveAttribute("aria-pressed", "true");
-  await expect(pause).toHaveAccessibleName("恢复核心动画");
-  const frameCount = () =>
-    page.evaluate(
-      () =>
-        (window as unknown as Window & { __palAnimationFrames: number })
-          .__palAnimationFrames,
-    );
-  const pausedFrames = await frameCount();
-  // This interval checks an animation stopping over time, rather than delaying page readiness.
-  await page.waitForTimeout(300);
-  expect(await frameCount()).toBe(pausedFrames);
-  await mkdir(artifacts, { recursive: true });
-  await page.screenshot({
-    path: path.join(artifacts, "simplified-hero-webgl-1440.png"),
-    animations: "disabled",
-  });
-  await expect(core).toHaveAttribute("data-webgl", "ready");
-  await pause.click();
-  await expect(pause).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(frameCount).toBeGreaterThan(pausedFrames);
-  await page.locator("footer").scrollIntoViewIfNeeded();
-  await page.waitForTimeout(200);
-  const offscreenFrames = await frameCount();
-  await page.waitForTimeout(200);
-  expect(await frameCount()).toBe(offscreenFrames);
-  await core.scrollIntoViewIfNeeded();
-  await expect.poll(frameCount).toBeGreaterThan(offscreenFrames);
-  await page.evaluate(() => {
-    Object.defineProperty(document, "hidden", {
-      configurable: true,
-      value: true,
-    });
-    document.dispatchEvent(new Event("visibilitychange"));
-  });
-  const hiddenFrames = await frameCount();
-  await page.waitForTimeout(200);
-  expect(await frameCount()).toBe(hiddenFrames);
-  await page.evaluate(() => {
-    Reflect.deleteProperty(document, "hidden");
-    document.dispatchEvent(new Event("visibilitychange"));
-  });
-  await expect.poll(frameCount).toBeGreaterThan(hiddenFrames);
-});
-
-test("a lost WebGL context disposes the canvas and reveals the matching fallback", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await expect(page.locator("[data-living-core]")).toHaveAttribute(
-    "data-webgl",
-    "ready",
-    { timeout: 15_000 },
-  );
-  await page.locator("canvas").evaluate((canvas) => {
-    canvas.dispatchEvent(new Event("webglcontextlost", { cancelable: true }));
-  });
-  await expect(page.locator("canvas")).toHaveCount(0);
-  await expect(page.locator("[data-core-still]")).toBeVisible();
-  await expect(page.locator("[data-core-pause]")).toBeHidden();
-  await assertSignalCycle(page);
-});
-
-test("touch-sized fallback animates a signal on demand and can pause the active sequence", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await page.waitForLoadState("networkidle");
-  const core = page.locator("[data-living-core]");
-  const pause = page.locator("[data-core-pause]");
-  await expect(page.locator("canvas")).toHaveCount(0);
-  await expect(page.locator("[data-core-still]")).toBeVisible();
-  await expect(pause).toBeHidden();
-  await page.locator("[data-core-signal]").click();
-  await expect(core).toHaveAttribute("data-core-phase", "sense");
-  await pause.click();
-  await expect(pause).toHaveAttribute("aria-pressed", "true");
-  await expect(core).toHaveAttribute("data-core-paused", "true");
-  const pausedPhase = await core.getAttribute("data-core-phase");
-  // Longer than the first phase: the timeline must stay stopped until resumed.
-  await page.waitForTimeout(1600);
-  await expect(core).toHaveAttribute("data-core-phase", pausedPhase!);
-  await pause.click();
-  await expect(pause).toHaveAttribute("aria-pressed", "false");
-  await expect(core).toHaveAttribute("data-core-phase", "connect");
-  await expect(core).toHaveAttribute("data-core-phase", "respond");
-  await expect(core).toHaveAttribute("data-core-phase", "rest");
-  await expect(pause).toBeHidden();
+  await waitForJourney(page);
+  await expect(page.locator("html")).toHaveCSS("scroll-behavior", "auto");
+  await expect(page.locator("html")).toHaveAttribute("data-intro", "done");
+  await expect(page.locator("html")).toHaveAttribute("data-intro-phase", "ready");
+  await expectPainted(page.locator(".hero-copy"), true);
+  await expectPainted(page.locator('[data-pixel-world="hero"] [data-story-part="friend"]'), true);
+  for (let index = 0; index < sceneIds.length; index += 1) {
+    if (index > 0) await nextScene(page, index);
+    const world = page.locator(`#${sceneIds[index]} [data-pixel-world]`);
+    await expect(world).toBeVisible();
+    expect(
+      await world
+        .locator(".assembly")
+        .evaluateAll((stages) =>
+          stages.every(
+            (stage) => Number(getComputedStyle(stage).opacity) === 1,
+          ),
+        ),
+    ).toBe(true);
+    expect(
+      await world.evaluate(
+        (element) =>
+          element
+            .getAnimations({ subtree: true })
+            .filter((animation) => animation.playState === "running").length,
+      ),
+    ).toBe(0);
+  }
 });
 
 test("page has no unhandled errors, console errors or missing local resources", async ({
@@ -411,13 +629,16 @@ test("page has no unhandled errors, console errors or missing local resources", 
       failures.push(`Failed: ${request.url()} ${request.failure()?.errorText}`);
   });
   await page.goto("/");
+  await waitForJourney(page);
   await page.waitForLoadState("networkidle");
-  await page.locator("footer").scrollIntoViewIfNeeded();
-  for (const image of await page.locator("img").all()) {
-    await expect(image).toHaveJSProperty("complete", true);
-    expect(
-      await image.evaluate((node: HTMLImageElement) => node.naturalWidth),
-    ).toBeGreaterThan(0);
+  for (let index = 0; index < sceneIds.length; index += 1) {
+    if (index > 0) await nextScene(page, index);
+    for (const image of await page.locator("img:visible").all()) {
+      await expect(image).toHaveJSProperty("complete", true);
+      expect(
+        await image.evaluate((node: HTMLImageElement) => node.naturalWidth),
+      ).toBeGreaterThan(0);
+    }
   }
   expect(failures).toEqual([]);
 });
@@ -441,21 +662,37 @@ test("unknown paths return a real HTTP 404 and the useful 404 page", async ({
 });
 
 for (const width of [1440, 390]) {
-  test(`${width}px WCAG accessibility scan`, async ({ page }, testInfo) => {
+  test(`${width}px: every scene passes WCAG accessibility checks`, async ({
+    page,
+  }, testInfo) => {
+    test.setTimeout(90_000);
     await page.setViewportSize({ width, height: 1000 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    if (width < 700) await page.locator('[aria-controls="main-nav"]').click();
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
-      .analyze();
-    await testInfo.attach(`axe-${width}`, {
-      body: JSON.stringify(results, null, 2),
-      contentType: "application/json",
-    });
-    expect(
-      results.violations,
-      JSON.stringify(results.violations, null, 2),
-    ).toEqual([]);
+    await waitForJourney(page);
+    for (let index = 0; index < sceneIds.length; index += 1) {
+      if (index > 0) await nextScene(page, index);
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze();
+      await testInfo.attach(`axe-${width}-${sceneIds[index]}`, {
+        body: JSON.stringify(results, null, 2),
+        contentType: "application/json",
+      });
+      expect(
+        results.violations,
+        JSON.stringify(results.violations, null, 2),
+      ).toEqual([]);
+    }
+    if (width < 700) {
+      await page.locator('[aria-controls="main-nav"]').click();
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
+        .analyze();
+      expect(
+        results.violations,
+        JSON.stringify(results.violations, null, 2),
+      ).toEqual([]);
+    }
   });
 }

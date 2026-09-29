@@ -1,13 +1,14 @@
 ---
 import { site } from '../data/site';
+import PixelText from './PixelText.astro';
 ---
 <header class="site-header">
-  <div class="header-inner container">
-    <a class="wordmark" href="/" aria-label="Pal AI Lab 首页"><img src="/images/pal-ai.png" width="200" height="200" alt="Pal AI" /></a>
+  <div class="header-inner">
+    <a class="wordmark" href="/" aria-label="Pal AI Lab 首页"><svg class="brand-eyes" viewBox="0 0 46 28" shape-rendering="crispEdges" aria-hidden="true"><path fill="currentColor" d="M5 0h9v3H5zM2 3h3v18H2zM14 3h3v18h-3zM5 21h9v3H5zM26 0h9v3h-9zM23 3h3v18h-3zM35 3h3v18h-3zM26 21h9v3h-9zM41 0h3v6h-3zM44 6h2v13h-2zM41 19h3v6h-3zM38 25h3v3h-3z"/></svg><span class="wordmark-type"><PixelText text="PAL AI" /></span></a>
     <button class="menu-toggle" aria-expanded="false" aria-controls="main-nav" aria-label="打开导航菜单" hidden><span></span><span></span></button>
     <nav id="main-nav" aria-label="主要导航">
-      <a href="/#projects">项目</a>
-      <a href="/#philosophy">理念</a>
+      <a href="/#projects" data-scene-link>探索项目</a>
+      <a href="/#join" data-scene-link>一起共建</a>
       <a class="nav-github" href={site.github} target="_blank" rel="noopener noreferrer">GitHub <span aria-hidden="true">↗</span><span class="sr-only">（新标签页）</span></a>
     </nav>
   </div>
@@ -33,18 +34,9 @@ import { site } from '../data/site';
       if (open) nav.querySelector<HTMLAnchorElement>('a')?.focus();
     });
     nav.addEventListener('click', (event) => { if ((event.target as Element).closest('a')) close(); });
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && header.classList.contains('menu-open')) close(true);
-    });
-    document.addEventListener('click', (event) => {
-      if (!header.contains(event.target as Node)) close();
-    });
-    header.addEventListener('focusout', () => {
-      setTimeout(() => { if (!header.contains(document.activeElement)) close(); }, 0);
-    });
-    matchMedia('(min-width: 701px)').addEventListener('change', () => close());
-    const observer = new IntersectionObserver(([entry]) => header.classList.toggle('scrolled', !entry?.isIntersecting));
-    const marker = document.querySelector('.header-marker');
-    if (marker) observer.observe(marker);
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && header.classList.contains('menu-open')) close(true); });
+    document.addEventListener('click', (event) => { if (!header.contains(event.target as Node)) close(); });
+    header.addEventListener('focusout', () => { setTimeout(() => { if (!header.contains(document.activeElement)) close(); }, 0); });
+    matchMedia('(min-width: 761px)').addEventListener('change', () => close());
   }
 </script>

@@ -14,7 +14,7 @@ if (configuredUrl) {
 
 export const site = {
   name: "Pal AI Lab",
-  title: "Pal AI Lab — 让 AI 走出聊天框，成为身边的伙伴",
+  title: "Pal AI Lab — 让 AI，走进你的世界。",
   description:
     "Pal AI Lab 探索更贴近日常生活的 AI：持续运行的智能体框架 Cortico、桌面伙伴 Coopanion，以及用 Coding Agent 创建扩展的 Cortina。",
   url: configuredUrl ? new URL(configuredUrl).origin : undefined,

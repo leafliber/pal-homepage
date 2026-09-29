@@ -1,19 +1,21 @@
 ---
-// The shared-geometry still remains visible until the optional WebGL render is ready.
+// The same portrait is used for the static fallback and the optional 3D scene.
 ---
-<section class="living-core" data-living-core data-core-phase="rest" aria-label="信号从感知到回应的概念演示">
+<section class="living-core" data-living-core data-core-phase="rest" aria-label="眨眼伙伴交互演示">
   <div class="core-stage" data-core-stage>
-    <img class="core-still" src="/images/living-core.webp" width="1200" height="1120" fetchpriority="high" alt="三片乳白与浅绿弧面组成开放的 C 形结构，中央是两个绿色感知焦点。" data-core-still />
+    <div class="core-portrait">
+      <img class="core-still" src="/images/living-core.webp" width="1200" height="1120" fetchpriority="high" alt="白色圆润的立体面罩，深色面板上是一双绿色长眼睛。" data-core-still />
+      <img class="core-closed" src="/images/living-core-blink.webp" width="1200" height="1120" alt="" aria-hidden="true" data-core-closed />
+    </div>
     <div class="core-canvas" data-core-canvas aria-hidden="true"></div>
-    <div class="core-static-signal" aria-hidden="true"><i></i><b></b></div>
   </div>
   <div class="core-caption">
-    <p class="core-description" data-core-description>从感知，到连接，再到回应。</p>
+    <p class="core-description" data-core-description>眨眨眼，打个招呼。</p>
     <div class="core-actions" data-core-controls hidden>
-      <button class="core-signal" type="button" data-core-signal>发送一个信号 <span aria-hidden="true">↗</span></button>
+      <button class="core-greet" type="button" data-core-greet>打个招呼 <span aria-hidden="true">↗</span></button>
       <button class="core-pause" type="button" data-core-pause hidden aria-pressed="false" aria-label="暂停核心动画"><svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="M3 2h2v8H3zm4 0h2v8H7z"></path></svg><span>暂停</span></button>
     </div>
-    <p class="core-disclaimer">概念演示 · 不运行 AI 模型</p>
+    <p class="core-disclaimer">交互演示 · 不运行 AI 模型</p>
   </div>
 </section>
 <script>
@@ -23,41 +25,32 @@
 <style>
   .living-core { width: 100%; max-width: 620px; position: relative; color: #f2f0eb; }
   .core-stage { position: relative; width: 100%; aspect-ratio: 600 / 560; isolation: isolate; }
-  .core-still, .core-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .core-still { display: block; object-fit: contain; }
+  .core-portrait, .core-still, .core-closed, .core-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .core-still, .core-closed { display: block; object-fit: contain; }
+  .core-closed { opacity: 0; pointer-events: none; }
   .core-canvas { pointer-events: none; opacity: 0; }
   .core-canvas :global(canvas) { display: block; width: 100%; height: 100%; }
   .living-core[data-webgl="ready"] .core-canvas { opacity: 1; }
-  .living-core[data-webgl="ready"] .core-still { visibility: hidden; }
+  .living-core[data-webgl="ready"] .core-portrait { visibility: hidden; }
   .core-caption { text-align: center; margin-top: -7px; position: relative; min-height: 94px; display: grid; grid-template-rows: 22px 45px 18px; justify-items: center; }
   .core-description { grid-row: 1; color: #c0c5c0; font-size: 12px; line-height: 1.8; min-height: 1.8em; margin: 0; }
   .core-actions { grid-row: 2; display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 7px; min-height: 38px; }
   .core-actions[hidden], .core-pause[hidden] { display: none; }
   .core-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; border: 0; padding: 6px 8px; background: transparent; font: inherit; font-size: 12px; cursor: pointer; border-radius: 4px; }
-  .core-signal { color: #5be4ae; }
-  .core-signal span { font-size: 16px; transition: transform 180ms ease; }
-  .core-signal:hover span { transform: translate(2px, -2px); }
+  .core-greet { color: #5be4ae; }
+  .core-greet span { font-size: 16px; transition: transform 180ms ease; }
+  .core-greet:hover span { transform: translate(2px, -2px); }
   .core-pause { color: #a6ada7; }
-  .core-pause:hover, .core-signal:hover { color: #f4f4eb; }
+  .core-pause:hover, .core-greet:hover { color: #f4f4eb; }
   .core-disclaimer { grid-row: 3; margin: 3px 0 0; color: #969e96; font-size: 10px; line-height: 1.8; }
   button:focus-visible { outline: 2px solid #5be4ae; outline-offset: 3px; }
-  .core-static-signal { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
-  .core-static-signal i, .core-static-signal b { display: block; position: absolute; background: #5be4ae; border-radius: 50%; box-shadow: 0 0 18px #00ad7c66; }
-  .core-static-signal i { width: 11px; height: 11px; left: 79%; top: 36%; }
-  .core-static-signal b { width: 30px; height: 30px; left: 52%; top: 46%; background: transparent; border: 1px solid #5be4ae; opacity: 0; }
-  .living-core:not([data-webgl="ready"])[data-core-phase="sense"] .core-static-signal,
-  .living-core:not([data-webgl="ready"])[data-core-phase="connect"] .core-static-signal,
-  .living-core:not([data-webgl="ready"])[data-core-phase="respond"] .core-static-signal { opacity: 1; }
-  .living-core[data-core-phase="sense"] .core-static-signal i { animation: core-arrival 1.4s both ease-in-out; }
-  .living-core[data-core-phase="connect"] .core-static-signal i { animation: core-connection 1.6s both ease-in-out; }
-  .living-core[data-core-phase="respond"] .core-static-signal i { animation: core-response 1.8s both ease-in-out; }
-  .living-core[data-core-phase="respond"] .core-static-signal b { animation: core-echo 1.8s both ease-out; }
-  .living-core[data-core-paused="true"] .core-static-signal i, .living-core[data-core-paused="true"] .core-static-signal b,
-  .living-core[data-core-suspended="true"] .core-static-signal i, .living-core[data-core-suspended="true"] .core-static-signal b { animation-play-state: paused; }
-  @keyframes core-arrival { from { left: 82%; top: 35%; opacity: 0; } 15% { opacity: 1; } to { left: 42%; top: 43%; opacity: 1; } }
-  @keyframes core-connection { from { left: 42%; top: 43%; transform: scale(1); } 50% { transform: scale(1.5); } to { left: 55%; top: 44%; transform: scale(1); } }
-  @keyframes core-response { from { left: 55%; top: 44%; opacity: 1; } to { left: 86%; top: 59%; opacity: 0; } }
-  @keyframes core-echo { from { transform: scale(.7); opacity: .6; } to { transform: scale(2.1); opacity: 0; } }
+  .living-core:not([data-webgl="ready"])[data-core-phase="greet"] .core-portrait { animation: core-greeting 1.4s ease-in-out both; }
+  .living-core:not([data-webgl="ready"])[data-core-phase="greet"] .core-still { animation: core-eyes-open 1.4s step-end both; }
+  .living-core:not([data-webgl="ready"])[data-core-phase="greet"] .core-closed { animation: core-eyes-closed 1.4s step-end both; }
+  .living-core:not([data-webgl="ready"]):is([data-core-paused="true"], [data-core-suspended="true"]) :is(.core-portrait, .core-still, .core-closed) { animation-play-state: paused; }
+  @keyframes core-greeting { 0%, 100% { transform: rotate(0); } 40% { transform: rotate(2deg); } 70% { transform: rotate(-.7deg); } }
+  @keyframes core-eyes-open { 0%, 23%, 53%, 100% { opacity: 1; } 15%, 45% { opacity: 0; } }
+  @keyframes core-eyes-closed { 0%, 23%, 53%, 100% { opacity: 0; } 15%, 45% { opacity: 1; } }
   @media (max-width: 600px) {
     .core-description { font-size: 11px; }
     .core-actions { margin-top: 4px; }
@@ -65,7 +58,7 @@
     .core-disclaimer { font-size: 10px; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .core-signal span { transition: none; }
-    .core-static-signal { display: none; }
+    .core-greet span { transition: none; }
+    .living-core .core-portrait, .living-core .core-still, .living-core .core-closed { animation: none !important; }
   }
 </style>
