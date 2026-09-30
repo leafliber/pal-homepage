@@ -1,11 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 144 156" fill="none" shape-rendering="crispEdges">
-        <g class="traveler-shell">
-          <path d="M30 6h72v6h18v12h12v18h6v78h-12v12h-12v18H96v-12H42v12H24v-18H12v-12H6V42h6V24h18Z" fill="#242522" />
-          <path d="M30 0h72v6h18v12h12v18h6v84h-6v12h-12v24H96v-18H42v18H18v-24H6v-12H0V36h6V18h12V6h12Zm6 6v6H24v12H12v18H6v72h6v12h12v24h12v-18h66v18h12v-24h12v-12h6V42h-6V24h-12V12H96V6Z" fill="#f1f1e7" />
-          <path d="M60 108h18v6H60Z" fill="#d5f58c" />
+  <g transform="translate(9 0) scale(.875 1)">
+    <g class="traveler-shell" fill="#ffffff">
+      <path d="M60 12h30v6h18v12h18v84h-18v12H48v-6H30v-18H12V48h12V30h36Z" fill="#242522" />
+      <path d="M60 0h30v6h18v6h12v6h12v6h6v12h-6v6h-12V30h-12v-6H90v-6H60v6H48v6H36v6h-6v12h-6v12h-6v24h6v12h6v12h12v6h12v6h36v-6h18v-6h12v-6h12v6h6v12h-6v6h-12v6h-18v6H48v-6H30v-6H18v-12h-6v-12H6V90H0V54h6V42h6V30h6v-6h12V12h12V6h18Z" />
+      <path class="traveler-foot traveler-foot--left" d="M51 126h18v24h-3v6H54v-6h-3Z" />
+      <path class="traveler-foot traveler-foot--right" d="M87 126h18v24h-3v6H90v-6h-3Z" />
+    </g>
+    <g class="traveler-eyes" fill="var(--accent, #d5f58c)">
+      <g class="traveler-gaze">
+        <path d="M54 48h18v6h6v18h-6v6H54v-6h-6V54h6Zm36 0h18v6h6v18h-6v6H90v-6h-6V54h6Z" />
+        <g class="traveler-pupils" fill="#242522">
+          <path d="M60 57h6v3h3v6h-3v3h-6v-3h-3v-6h3Zm36 0h6v3h3v6h-3v3h-6v-3h-3v-6h3Z" />
         </g>
-        <g class="traveler-eyes">
-          <path d="M30 48h18v6h6v30h-6v6H30v-6h-6V54h6Zm0 6v30h18V54Zm48-6h18v6h6v30h-6v6H78v-6h-6V54h6Zm0 6v30h18V54Z" fill="#f1f1e7" />
-        </g>
-        <path class="traveler-smile" d="M114 42h6v12h6v24h-6v12h-6V78h6V54h-6Z" fill="#f1f1e7" />
-      </svg>
+      </g>
+    </g>
+  </g>
+</svg>

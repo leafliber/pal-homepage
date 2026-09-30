@@ -995,6 +995,82 @@ test("the shared traveler changes gear in sequence and respects interrupted navi
   }
 });
 
+test("chapter hops settle, replace interrupted motion and clear when motion is disabled", async ({ page }) => {
+  await page.goto("/#projects");
+  await waitForJourney(page);
+  const travel = page.locator("[data-traveler-travel]");
+  const toggle = page.locator("[data-motion-toggle]");
+  const readTravel = () => travel.evaluate((element) => {
+    const transform = getComputedStyle(element).transform;
+    const matrix = transform === "none" ? new DOMMatrixReadOnly() : new DOMMatrixReadOnly(transform);
+    return {
+      animations: element.getAnimations().length,
+      atRest: matrix.isIdentity,
+      // Count a visible change in position, scale or lean, not merely a running timer.
+      moving: Math.max(Math.abs(matrix.f), Math.abs(matrix.b) * 144, Math.abs(matrix.a - 1) * 144) > 1,
+    };
+  });
+  const assertRest = () => expect.poll(readTravel).toEqual({ animations: 0, atRest: true, moving: false });
+  const assertMoving = () => expect.poll(readTravel, { intervals: [16, 33, 50] })
+    .toEqual({ animations: 1, atRest: false, moving: true });
+  const assertNoTransientPixels = () => expect.poll(() =>
+    page.locator("[data-traveler] .gear-transient").evaluateAll((effects) =>
+      effects.length > 0 && effects.every((effect) => Number(getComputedStyle(effect).opacity) === 0),
+    ),
+  ).toBe(true);
+
+  await assertRest();
+  await page.locator("[data-scene-next]").click();
+  await assertMoving();
+  await assertRest();
+  await assertActiveScene(page, 2);
+  await assertTravelerAtAnchor(page);
+
+  // Exercise real chapter controls within a few frames, before any hop can finish.
+  const reversals = await page.evaluate(async () => {
+    const samples: { scene: string | undefined; animations: number }[] = [];
+    for (const direction of ["prev", "next", "prev"]) {
+      document.querySelector<HTMLButtonElement>(`[data-scene-${direction}]`)!.click();
+      await new Promise(requestAnimationFrame);
+      await new Promise(requestAnimationFrame);
+      samples.push({
+        scene: document.querySelector<HTMLElement>("main[data-journey]")!.dataset.activeScene,
+        animations: document.querySelector<SVGGElement>("[data-traveler-travel]")!.getAnimations().length,
+      });
+    }
+    return samples;
+  });
+  expect(reversals.map((sample) => sample.scene)).toEqual(["1", "2", "1"]);
+  expect(reversals.map((sample) => sample.animations), "a reversal must replace the previous hop, never stack poses").toEqual([1, 1, 1]);
+  await assertMoving();
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-paused", "true");
+  await assertRest();
+  await assertNoTransientPixels();
+
+  await toggle.click();
+  await expect(page.locator("html")).toHaveAttribute("data-paused", "false");
+  await page.locator("[data-scene-next]").click();
+  await assertMoving();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await assertRest();
+  await assertNoTransientPixels();
+  await nextScene(page, 3);
+  await assertRest();
+
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.locator("[data-scene-prev]").click();
+  await assertMoving();
+  // The app uses this root state for its background-page playback policy.
+  await page.evaluate(() => { document.documentElement.dataset.documentHidden = "true"; });
+  await assertRest();
+  await assertNoTransientPixels();
+  await nextScene(page, 3);
+  await assertRest();
+  await page.evaluate(() => { document.documentElement.dataset.documentHidden = "false"; });
+  await assertRest();
+});
+
 test("the motion control stops the world and resumes its automatic animation", async ({
   page,
 }) => {

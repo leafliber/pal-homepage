@@ -1,0 +1,101 @@
+/* Small responses share the existing outfit rhythms and rest between beats. */
+.traveler-gear .gear-transient {
+  opacity: 0;
+}
+.traveler-gear .gear-radio-pixel--near {
+  animation: gear-radio-near 6s steps(1, end) infinite;
+}
+.traveler-gear .gear-radio-pixel--far {
+  animation: gear-radio-far 6s steps(1, end) infinite;
+}
+.traveler-gear .gear-listen-bars {
+  animation: gear-listen-phrase 5s steps(1, end) infinite;
+}
+.traveler-gear .gear-listen-bar {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: gear-listen-beat 5s steps(2, end) infinite;
+}
+.traveler-gear .gear-listen-bar--two {
+  animation-delay: 100ms;
+}
+.traveler-gear .gear-listen-bar--three {
+  animation-delay: 200ms;
+}
+.traveler-gear .gear-work-spark--near {
+  animation: gear-spark-near 7s steps(1, end) infinite;
+}
+.traveler-gear .gear-work-spark--far {
+  animation: gear-spark-far 7s steps(1, end) infinite;
+}
+.traveler-gear .gear-scarf-tail {
+  transform-box: view-box;
+  transform-origin: 123px 114px;
+  animation: gear-scarf-follow 6s steps(3, end) infinite;
+}
+.traveler-gear .gear-flag-fabric {
+  transform-box: view-box;
+  transform-origin: 156px 6px;
+  animation: gear-fabric-follow 6s steps(3, end) infinite;
+}
+.traveler-gear :is(.gear-transient, .gear-listen-bar, .gear-scarf-tail, .gear-flag-fabric) {
+  animation-play-state: var(--gear-play-state);
+}
+
+@keyframes gear-radio-near {
+  0%, 8%, 12%, 16%, 20%, 100% { opacity: 0; }
+  10%, 18% { opacity: 1; }
+}
+@keyframes gear-radio-far {
+  0%, 12%, 16%, 20%, 24%, 100% { opacity: 0; }
+  14%, 22% { opacity: .7; }
+}
+@keyframes gear-listen-phrase {
+  0%, 12%, 40%, 100% { opacity: 0; }
+  14%, 38% { opacity: .8; }
+}
+@keyframes gear-listen-beat {
+  0%, 12%, 20%, 30%, 40%, 100% { transform: scaleY(.34); }
+  16%, 26%, 36% { transform: scaleY(1); }
+}
+@keyframes gear-spark-near {
+  0%, 28%, 33%, 100% { opacity: 0; }
+  30% { opacity: 1; }
+}
+@keyframes gear-spark-far {
+  0%, 31%, 36%, 100% { opacity: 0; }
+  33% { opacity: .7; }
+}
+@keyframes gear-scarf-follow {
+  0%, 23%, 54%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-4deg); }
+  37% { transform: rotate(3deg); }
+  44% { transform: rotate(-2deg); }
+}
+@keyframes gear-fabric-follow {
+  0%, 20%, 54%, 100% { transform: skewY(0deg); }
+  29% { transform: skewY(6deg); }
+  36% { transform: skewY(-4deg); }
+  43% { transform: skewY(2deg); }
+}
+
+html[data-paused="true"]
+  .traveler-gear :is(.gear-transient, .gear-listen-bar, .gear-scarf-tail, .gear-flag-fabric) {
+  animation: none !important;
+}
+html[data-document-hidden="true"]
+  .traveler-gear :is(.gear-transient, .gear-listen-bar, .gear-scarf-tail, .gear-flag-fabric) {
+  animation-play-state: paused !important;
+}
+html:is([data-paused="true"], [data-document-hidden="true"])
+  .traveler-gear .gear-transient {
+  opacity: 0 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .traveler-gear :is(.gear-transient, .gear-listen-bar, .gear-scarf-tail, .gear-flag-fabric) {
+    animation: none !important;
+  }
+  .traveler-gear .gear-transient {
+    opacity: 0 !important;
+  }
+}

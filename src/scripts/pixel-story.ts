@@ -24,6 +24,9 @@ export function initPixelStory(
   const controller = new AbortController();
   const { signal } = controller;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const travelPose = traveler.querySelector<SVGGElement>("[data-traveler-travel]");
+  let travelAnimation: Animation | undefined;
+  let lastScene = stage.dataset.activeScene;
   let completed = false;
   let phaseIndex = 0;
   let timer: number | undefined;
@@ -37,6 +40,25 @@ export function initPixelStory(
   const isHome = () => currentScene()?.id === "home";
   const isHidden = () =>
     document.hidden || root.dataset.documentHidden === "true";
+
+  const stopTravel = () => {
+    travelAnimation?.cancel();
+    travelAnimation = undefined;
+  };
+  const hopToScene = () => {
+    stopTravel();
+    if (!travelPose || reducedMotion.matches || isHidden() || root.dataset.paused === "true") return;
+    const lean = stage.dataset.direction === "backward" ? -3 : 3;
+    // The outer actor follows its anchor; this inner layer adds anticipation,
+    // a short arc and a soft landing without moving the layout or its outfits.
+    travelAnimation = travelPose.animate([
+      { transform: "translateY(0) scale(1, 1) rotate(0deg)", offset: 0 },
+      { transform: `translateY(2px) scale(1.03, .95) rotate(${lean}deg)`, offset: .12, easing: "ease-out" },
+      { transform: `translateY(-15px) scale(.98, 1.03) rotate(${lean}deg)`, offset: .42, easing: "ease-in" },
+      { transform: "translateY(2px) scale(1.04, .94) rotate(0deg)", offset: .82, easing: "ease-out" },
+      { transform: "translateY(0) scale(1, 1) rotate(0deg)", offset: 1 },
+    ], { duration: 850, easing: "linear" });
+  };
 
   const positionTraveler = () => {
     if (signal.aborted) return false;
@@ -135,6 +157,7 @@ export function initPixelStory(
   };
 
   const syncPlayback = () => {
+    if (root.dataset.paused === "true" || reducedMotion.matches || isHidden()) stopTravel();
     if (root.dataset.paused === "true" || reducedMotion.matches) {
       // Pausing must reveal the page rather than leave essential content mid-intro.
       finishIntro();
@@ -156,6 +179,10 @@ export function initPixelStory(
     if (!isHome() || records.some((record) => record.oldValue !== "0"))
       finishIntro();
     observeScene();
+    if (stage.dataset.activeScene !== lastScene) {
+      lastScene = stage.dataset.activeScene;
+      hopToScene();
+    }
   });
   sceneObserver.observe(stage, {
     attributes: true,
@@ -206,6 +233,7 @@ export function initPixelStory(
 
   const destroy = () => {
     finishIntro();
+    stopTravel();
     controller.abort();
     clearTimer();
     sceneObserver.disconnect();
