@@ -1,0 +1,166 @@
+/* Walking moves this inner layer; the outer traveler keeps its scene anchor. */
+.journey-traveler .traveler-companion {
+  position: relative;
+  width: 100%;
+}
+.journey-traveler .traveler-bubble {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 52%;
+  width: 216px;
+  max-width: calc(100vw - 48px);
+  min-height: 78px;
+  padding: 10px 13px;
+  border: 2px solid var(--accent);
+  background: var(--bg);
+  box-shadow: 4px 4px 0 #161713;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.75;
+  letter-spacing: .025em;
+  text-align: left;
+  overflow-wrap: anywhere;
+  transform-origin: 24px 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+.journey-traveler .traveler-bubble::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  bottom: -12px;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  clip-path: polygon(0 0, 100% 0, 100% 40%, 60% 40%, 60% 100%, 20% 100%, 20% 60%, 0 60%);
+}
+.journey-traveler .traveler-bubble[data-state="hidden"] {
+  opacity: 0;
+  visibility: hidden;
+}
+.journey-traveler .traveler-bubble[data-state="entering"] {
+  animation: companion-bubble-enter 240ms steps(5, end) both;
+}
+.journey-traveler .traveler-bubble:is([data-state="typing"], [data-state="holding"]) {
+  opacity: 1;
+  transform: none;
+}
+.journey-traveler .traveler-bubble[data-state="leaving"] {
+  opacity: 0;
+  animation: companion-bubble-leave 180ms steps(4, end) both;
+}
+.journey-traveler .traveler-bubble [data-bubble-text] {
+  white-space: pre-wrap;
+}
+.journey-traveler .traveler-bubble-cursor {
+  display: inline-block;
+  width: 5px;
+  height: 10px;
+  margin-left: 3px;
+  background: var(--accent);
+  vertical-align: -1px;
+  opacity: 0;
+}
+.journey-traveler .traveler-bubble[data-state="typing"] .traveler-bubble-cursor {
+  animation: companion-cursor 800ms steps(1, end) infinite;
+}
+.journey-traveler .traveler-blush {
+  opacity: 0;
+  transition: opacity 180ms steps(2, end);
+}
+.journey-traveler[data-mood="shy"] .traveler-blush {
+  opacity: .5;
+}
+.journey-traveler[data-walking="true"] {
+  --walk-lean: 2deg;
+}
+.journey-traveler[data-walking="true"][data-walk-direction="left"] {
+  --walk-lean: -2deg;
+}
+.journey-traveler[data-walking="true"] .traveler-sprite {
+  animation: none;
+}
+.journey-traveler[data-walking="true"] .traveler-personality {
+  animation: companion-walk-pose 560ms steps(2, end) infinite;
+}
+.journey-traveler[data-walking="true"] .traveler-foot {
+  animation: companion-walk-step 560ms steps(2, end) infinite;
+}
+.journey-traveler[data-walking="true"] .traveler-foot--right {
+  animation-delay: -280ms;
+}
+
+@keyframes companion-bubble-enter {
+  from { opacity: 0; transform: translateY(6px) scale(.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes companion-bubble-leave {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-4px) scale(.98); }
+}
+@keyframes companion-cursor {
+  0%, 48%, 100% { opacity: 1; }
+  50%, 98% { opacity: 0; }
+}
+@keyframes companion-walk-step {
+  0%, 50%, 100% { transform: translateY(0); }
+  20%, 35% { transform: translateY(-4px); }
+}
+@keyframes companion-walk-pose {
+  0%, 50%, 100% { transform: translateY(0) rotate(var(--walk-lean)); }
+  25%, 75% { transform: translateY(-2px) rotate(var(--walk-lean)); }
+}
+
+@media (max-width: 1000px) {
+  .journey-traveler .traveler-bubble {
+    left: calc(50% - 18px);
+    width: 196px;
+  }
+}
+@media (max-width: 760px) {
+  .journey-traveler .traveler-bubble {
+    left: calc(50% - 42px);
+    bottom: calc(100% + 12px);
+    width: 176px;
+    min-height: 76px;
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+}
+@media (max-width: 380px) {
+  .journey-traveler .traveler-bubble {
+    left: calc(50% - 48px);
+    bottom: calc(100% + 6px);
+    width: 176px;
+    min-height: 64px;
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.65;
+  }
+}
+html:is([data-paused="true"], [data-document-hidden="true"])
+  .journey-traveler :is(.traveler-bubble, .traveler-bubble-cursor) {
+  animation: none !important;
+}
+html:is([data-paused="true"], [data-document-hidden="true"])
+  .journey-traveler[data-walking="true"] :is(.traveler-foot, .traveler-personality) {
+  animation: none !important;
+  transform: none;
+}
+html:is([data-paused="true"], [data-document-hidden="true"])
+  .journey-traveler .traveler-blush {
+  transition: none;
+}
+html[data-document-hidden="true"] .journey-traveler .traveler-bubble {
+  visibility: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .journey-traveler :is(.traveler-bubble, .traveler-bubble-cursor),
+  .journey-traveler[data-walking="true"] :is(.traveler-foot, .traveler-personality) {
+    animation: none !important;
+    transform: none;
+  }
+  .journey-traveler .traveler-blush {
+    transition: none;
+  }
+}

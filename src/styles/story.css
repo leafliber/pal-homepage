@@ -1,3 +1,6 @@
+@import './traveler-gear.css';
+@import './traveler-companion.css';
+
 .journey-traveler {
   display: none;
   position: absolute;
@@ -32,12 +35,59 @@ html[data-journey="ready"] .journey-traveler {
 .journey-traveler .traveler-sprite {
   filter: none;
   overflow: visible;
+  transform-origin: 50% 100%;
   animation: traveler-breathe 6s steps(4, end) infinite;
+}
+.traveler-travel,
+.traveler-personality {
+  transform-box: view-box;
+  transform-origin: 72px 150px;
+}
+/* Separate the pose, gaze and blink so a small glance never cancels a blink. */
+html[data-intro="done"] .traveler-personality {
+  animation: traveler-curious 12s steps(6, end) infinite;
+}
+html[data-intro="done"] .traveler-gaze {
+  animation: traveler-glance 12s steps(3, end) infinite;
+}
+html[data-intro="done"] .traveler-pupils {
+  animation: traveler-focus 12s steps(2, end) infinite;
+}
+html[data-intro="done"] .traveler-foot {
+  animation: traveler-weight-shift 12s steps(2, end) infinite;
+}
+html[data-intro="done"] .traveler-foot--right {
+  animation-delay: 1.2s;
+}
+[data-active-scene="0"] .traveler-personality {
+  --gaze-x: -3px;
+  --gaze-y: 3px;
+  --pose-tilt: -3deg;
+}
+[data-active-scene="1"] .traveler-personality {
+  --gaze-x: 3px;
+  --gaze-y: -3px;
+  --pose-tilt: 2deg;
+}
+[data-active-scene="2"] .traveler-personality {
+  --gaze-x: -3px;
+  --gaze-y: 0px;
+  --pose-tilt: -4deg;
+}
+[data-active-scene="3"] .traveler-personality {
+  --gaze-x: 3px;
+  --gaze-y: 3px;
+  --pose-tilt: 3deg;
+}
+[data-active-scene="4"] .traveler-personality {
+  --gaze-x: -3px;
+  --gaze-y: 0px;
+  --pose-tilt: -3deg;
 }
 .traveler-eyes {
   transform-box: fill-box;
   transform-origin: center;
-  animation: traveler-blink 7s steps(1, end) infinite;
+  animation: traveler-blink 9s steps(1, end) infinite;
 }
 .traveler-shell {
   opacity: 1;
@@ -131,24 +181,34 @@ html:is([data-paused="true"], [data-document-hidden="true"]) .traveler-gear {
   0%,
   75%,
   100% {
-    transform: translateY(0);
+    transform: translateY(0) scaleY(1);
   }
   35%,
   55% {
-    transform: translateY(-3px);
+    transform: translateY(-2px) scaleY(1.01);
   }
 }
 @keyframes traveler-blink {
-  0%,
-  43%,
-  48%,
-  100% {
-    transform: scaleY(1);
-  }
-  44%,
-  46% {
-    transform: scaleY(0.08);
-  }
+  0%, 32%, 35%, 72%, 75%, 79%, 100% { transform: scaleY(1); }
+  33%, 34%, 73%, 74%, 77%, 78% { transform: scaleY(.18); }
+}
+@keyframes traveler-curious {
+  0%, 22%, 48%, 100% { transform: rotate(0deg); }
+  28%, 38% { transform: rotate(var(--pose-tilt, -3deg)); }
+  43% { transform: rotate(1deg); }
+}
+@keyframes traveler-glance {
+  0%, 18%, 46%, 100% { transform: translate(0, 0); }
+  24%, 36% { transform: translate(var(--gaze-x, -3px), var(--gaze-y, 0px)); }
+  40% { transform: translate(0, -3px); }
+}
+@keyframes traveler-focus {
+  0%, 15%, 43%, 100% { transform: translateX(0); }
+  20%, 36% { transform: translateX(var(--gaze-x, -3px)); }
+}
+@keyframes traveler-weight-shift {
+  0%, 25%, 35%, 100% { transform: translateY(0); }
+  29%, 31% { transform: translateY(-3px); }
 }
 @keyframes traveler-wake {
   0%,
@@ -161,7 +221,7 @@ html:is([data-paused="true"], [data-document-hidden="true"]) .traveler-gear {
     opacity: 1;
   }
   56% {
-    transform: scaleY(0.08);
+    transform: scaleY(0.2);
   }
   100% {
     transform: scaleY(1);
@@ -175,11 +235,11 @@ html:is([data-paused="true"], [data-document-hidden="true"]) .traveler-gear {
   }
   25%,
   48% {
-    transform: translateX(-5px);
+    transform: translateX(-3px);
   }
   70%,
   90% {
-    transform: translateX(5px);
+    transform: translateX(3px);
   }
 }
 @keyframes traveler-form {
@@ -194,10 +254,13 @@ html:is([data-paused="true"], [data-document-hidden="true"]) .traveler-gear {
 }
 @keyframes traveler-land {
   0% {
-    transform: translateY(-9px);
+    transform: translateY(-12px) scale(.97, 1.03);
   }
-  60% {
-    transform: translateY(2px) scaleY(0.96);
+  54% {
+    transform: translateY(3px) scale(1.04, .94);
+  }
+  76% {
+    transform: translateY(-3px) scale(.99, 1.02);
   }
   100% {
     transform: translateY(0) scaleY(1);
@@ -210,11 +273,11 @@ html:is([data-paused="true"], [data-document-hidden="true"]) .traveler-gear {
   }
   22%,
   60% {
-    transform: rotate(-7deg) translateY(-6px);
+    transform: rotate(-4deg) translateY(-6px);
   }
   40%,
   78% {
-    transform: rotate(6deg) translateY(-8px);
+    transform: rotate(4deg) translateY(-6px);
   }
 }
 
@@ -321,12 +384,7 @@ html[data-intro="playing"]:is(
     [data-intro-phase="wake"],
     [data-intro-phase="look"]
   )
-  .traveler-shell,
-html[data-intro="playing"]:is(
-    [data-intro-phase="blank"],
-    [data-intro-phase="wake"]
-  )
-  .traveler-smile {
+  .traveler-shell {
   opacity: 0;
 }
 html[data-intro="playing"] .traveler-sprite {
@@ -340,6 +398,14 @@ html[data-intro-phase="look"] .traveler-eyes {
 }
 html[data-intro-phase="look"] .traveler-thought {
   opacity: 1;
+  transform-origin: left bottom;
+  animation: traveler-thought-pop 900ms steps(5, end) both;
+}
+@keyframes traveler-thought-pop {
+  0% { opacity: 0; transform: translateY(6px) scale(.5); }
+  25% { opacity: 1; transform: translateY(-3px) scale(1.08); }
+  55%, 85% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-3px) scale(.95); }
 }
 html[data-intro-phase="landing"] .traveler-sprite {
   transform-origin: center bottom;
@@ -349,6 +415,7 @@ html[data-intro-phase="landing"] .traveler-shell {
   animation: traveler-form 650ms steps(8, end) both;
 }
 html[data-intro-phase="meet"] .traveler-sprite {
+  transform-origin: 54% 92%;
   animation: traveler-greet 1600ms steps(8, end) both;
 }
 html[data-intro="playing"]:is(
