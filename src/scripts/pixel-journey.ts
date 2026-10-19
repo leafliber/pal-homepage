@@ -24,10 +24,6 @@ export function initPixelJourney(
   const links = Array.from(
     document.querySelectorAll<HTMLAnchorElement>("[data-scene-link]"),
   );
-  const previousButtons =
-    document.querySelectorAll<HTMLButtonElement>("[data-scene-prev]");
-  const nextButtons =
-    document.querySelectorAll<HTMLButtonElement>("[data-scene-next]");
   let activeIndex = 0;
   let transitionTimer: number | undefined;
   let wheelTotal = 0;
@@ -40,7 +36,6 @@ export function initPixelJourney(
   let wheelTrough = Infinity;
   let wheelActiveDistance = 0;
   let wheelConsumed = false;
-  let paused = root.dataset.paused === "true";
   let touch:
     | { x: number; y: number; target: EventTarget | null; canScroll: boolean }
     | undefined;
@@ -84,21 +79,6 @@ export function initPixelJourney(
     return scenes.findIndex((scene) => scene.id === (aliases[id] ?? id));
   };
 
-  const setMotion = () => {
-    root.dataset.paused = String(paused);
-    document
-      .querySelectorAll<HTMLButtonElement>("[data-motion-toggle]")
-      .forEach((button) => {
-        button.setAttribute("aria-pressed", String(paused));
-        button.setAttribute("aria-label", paused ? "继续动画" : "暂停动画");
-      });
-    document
-      .querySelectorAll<HTMLElement>("[data-motion-label]")
-      .forEach((label) => {
-        label.textContent = paused ? "继续动画" : "暂停动画";
-      });
-  };
-
   const updateControls = () => {
     const current = scenes[activeIndex];
     const activeGroup =
@@ -120,12 +100,6 @@ export function initPixelJourney(
       } else {
         link.removeAttribute("aria-current");
       }
-    });
-    previousButtons.forEach((button) => {
-      button.disabled = activeIndex === 0;
-    });
-    nextButtons.forEach((button) => {
-      button.disabled = activeIndex === scenes.length - 1;
     });
     document
       .querySelectorAll<HTMLElement>("[data-scene-number]")
@@ -267,12 +241,6 @@ export function initPixelJourney(
         if (index < 0) return;
         event.preventDefault();
         goTo(index, { focus: true });
-      }
-      if (event.target.closest("[data-scene-prev]")) goTo(activeIndex - 1);
-      if (event.target.closest("[data-scene-next]")) goTo(activeIndex + 1);
-      if (event.target.closest("[data-motion-toggle]")) {
-        paused = !paused;
-        setMotion();
       }
     },
     { signal },
@@ -493,7 +461,6 @@ export function initPixelJourney(
   root.dataset.journey = "ready";
   syncProjectFrameSize();
   syncVisibility();
-  setMotion();
   goTo(Math.max(0, indexForHash(location.hash)), {
     history: false,
     initial: true,

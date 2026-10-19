@@ -113,14 +113,6 @@ const details = [
       <footer class="scene-bottom"><span>© {new Date().getFullYear()} Pal AI Lab</span><a href="#home" data-scene-link class="scroll-hint">回到首页 <span aria-hidden="true">↑</span></a></footer>
     </section>
   </main>
-  <div class="journey-bar">
-    <nav class="chapter-nav" aria-label="章节导航">
-      <a href="#home" data-scene-link data-scene-group-link="intro" aria-current="step"><span class="chapter-dot" aria-hidden="true"></span><span class="chapter-nav-label">简介</span></a>
-      <a href="#projects" data-scene-link data-scene-group-link="projects"><span class="chapter-dot" aria-hidden="true"></span><span class="chapter-nav-label">项目</span></a>
-      <a href="#join" data-scene-link data-scene-group-link="join"><span class="chapter-dot" aria-hidden="true"></span><span class="chapter-nav-label">共建</span></a>
-    </nav>
-    <div class="journey-controls"><button class="motion-toggle" data-motion-toggle aria-pressed="false" aria-label="暂停动画"><span class="pause-icon" aria-hidden="true"></span><span class="motion-label" data-motion-label>暂停动画</span></button><span class="control-divider"></span><button class="chapter-button" data-scene-prev aria-label="上一幕" disabled>↑</button><button class="chapter-button" data-scene-next aria-label="下一幕">↓</button></div>
-  </div>
   <script>
     import { initPixelJourney } from '../scripts/pixel-journey';
     import { initPixelStory } from '../scripts/pixel-story';

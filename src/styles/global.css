@@ -6,7 +6,6 @@
   --line: #41433b;
   --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --header-height: 100px;
-  --bar-height: 76px;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Microsoft YaHei", sans-serif;
@@ -215,7 +214,7 @@ main[data-journey] {
 }
 .scene {
   position: relative;
-  min-height: calc(100svh - var(--header-height) - var(--bar-height));
+  min-height: calc(100svh - var(--header-height));
   padding: 70px 6vw 76px;
 }
 .scene-inner {
@@ -414,17 +413,6 @@ main[data-journey] {
 .join-scene .scene-actions {
   margin-top: 28px;
 }
-.journey-bar {
-  position: relative;
-  z-index: 20;
-  min-height: var(--bar-height);
-  margin: 0 4.2vw;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  border-top: 1px solid var(--line);
-  background: var(--bg);
-}
 .journey-brand {
   display: flex;
   align-items: center;
@@ -451,89 +439,6 @@ main[data-journey] {
 .fraction-separator {
   color: #798367;
 }
-.chapter-nav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: auto;
-  gap: 28px;
-}
-.chapter-nav a {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  font-size: 9px;
-  color: #a4ab97;
-  white-space: nowrap;
-}
-.chapter-dot {
-  width: 5px;
-  height: 5px;
-  border: 1px solid #737d64;
-}
-.chapter-nav a[aria-current="step"] {
-  color: var(--accent);
-}
-.chapter-nav a[aria-current="step"] .chapter-dot {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px #d5f58c16;
-}
-.journey-controls {
-  display: none;
-  align-items: center;
-  gap: 12px;
-}
-.motion-toggle {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 0;
-  background: transparent;
-  border: 0;
-  min-height: 36px;
-  white-space: nowrap;
-  color: #a5ae96;
-  font-size: 9px;
-}
-.pause-icon {
-  display: block;
-  width: 6px;
-  height: 8px;
-  border-inline: 2px solid currentColor;
-}
-.motion-toggle[aria-pressed="true"] .pause-icon {
-  height: 0;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-  border-left: 6px solid currentColor;
-  border-right: 0;
-}
-.control-divider {
-  height: 16px;
-  width: 1px;
-  background: var(--line);
-  margin-inline: 3px;
-}
-.chapter-button {
-  width: 29px;
-  height: 29px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid #59614b;
-  font: 16px var(--mono);
-}
-.chapter-button:hover:not(:disabled) {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
-}
-.chapter-button:disabled {
-  opacity: 0.3;
-  cursor: default;
-}
 html[data-journey="ready"] body {
   height: 100dvh;
   overflow: hidden;
@@ -544,7 +449,7 @@ html[data-journey="ready"] .site-header {
 }
 html[data-journey="ready"] [data-journey] {
   position: fixed;
-  inset: var(--header-height) 0 var(--bar-height);
+  inset: var(--header-height) 0 0;
   width: 100%;
 }
 html[data-journey="ready"] .scene {
@@ -588,16 +493,6 @@ html[data-journey="ready"] .scene.is-leaving .scene-inner {
 }
 html[data-journey="ready"] .scene:not(.is-active):not(.is-leaving) * {
   animation-play-state: paused !important;
-}
-html[data-journey="ready"] .journey-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: var(--bar-height);
-}
-html[data-journey="ready"] .journey-controls {
-  display: flex;
 }
 @keyframes scene-in {
   from {
@@ -687,23 +582,11 @@ html[data-paused="true"] .scene-art {
   .join-scene h2 {
     font-size: clamp(36px, 4.6vw, 55px);
   }
-  .chapter-nav {
-    gap: 16px;
-  }
-  .chapter-nav-label {
-    font-size: 8px;
-  }
   .journey-brand {
     font-size: 7px;
   }
   .journey-fraction {
     margin-left: 3px;
-  }
-  .motion-label {
-    display: none;
-  }
-  .journey-bar {
-    gap: 15px;
   }
   .scene-actions {
     gap: 20px;
@@ -725,7 +608,6 @@ html[data-paused="true"] .scene-art {
 @media (max-width: 760px) {
   :root {
     --header-height: 79px;
-    --bar-height: 67px;
   }
   .site-header {
     padding-inline: 6vw;
@@ -857,10 +739,6 @@ html[data-paused="true"] .scene-art {
   .scene-bottom .scroll-mouse {
     display: none;
   }
-  .journey-bar {
-    margin-inline: 6vw;
-    gap: 14px;
-  }
   .journey-brand {
     font-size: 0;
     gap: 0;
@@ -872,34 +750,6 @@ html[data-paused="true"] .scene-art {
     margin: 0;
     font-size: 10px;
     gap: 5px;
-  }
-  .chapter-nav {
-    gap: 17px;
-  }
-  .chapter-nav a {
-    padding: 10px 1px;
-  }
-  .chapter-nav-label {
-    display: none;
-  }
-  .chapter-dot {
-    width: 6px;
-    height: 6px;
-  }
-  .journey-controls {
-    gap: 8px;
-  }
-  .control-divider {
-    display: none;
-  }
-  .motion-toggle {
-    width: 20px;
-    justify-content: center;
-  }
-  .chapter-button {
-    width: 26px;
-    height: 26px;
-    font-size: 14px;
   }
   .project-title {
     max-width: 310px;
@@ -1010,7 +860,6 @@ html[data-paused="true"] .scene-art {
 @media (min-width: 761px) and (max-height: 760px) {
   :root {
     --header-height: 80px;
-    --bar-height: 62px;
   }
   .scene {
     padding-top: 55px;

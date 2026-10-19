@@ -36,16 +36,13 @@ async function assertActiveScene(page: Page, index: number) {
 
 async function assertNavigationHierarchy(page: Page, index: number) {
   const group = index === 0 ? "intro" : index === 4 ? "join" : "projects";
-  const groupName = index === 0 ? "简介" : index === 4 ? "共建" : "项目";
+  const groupLink = index === 0 ? undefined : index === 4 ? "参与项目" : "开源项目";
   await expect(page.locator("main[data-journey]")).toHaveAttribute("data-active-group", group);
   await expect(page.locator(`#${sceneIds[index]}`)).toHaveAttribute("data-scene-group", group);
-  const stages = page.getByRole("navigation", { name: "章节导航", exact: true });
-  await expect(stages.getByRole("link")).toHaveCount(3);
-  for (const name of ["简介", "项目", "共建"]) {
-    await expect(stages.getByRole("link", { name, exact: true })).toHaveCount(1);
-  }
-  await expect(stages.locator('[aria-current="step"]')).toHaveCount(1);
-  await expect(stages.locator('[aria-current="step"]')).toHaveAccessibleName(groupName);
+  // The header stays in the DOM while collapsed into the mobile menu.
+  const currentGroup = page.locator('#main-nav [aria-current="step"]');
+  await expect(currentGroup).toHaveCount(groupLink ? 1 : 0);
+  if (groupLink) await expect(currentGroup).toHaveText(groupLink);
 
   const visibleProjectNavigation = page.getByRole("navigation", { name: "项目选择", exact: true });
   await expect(visibleProjectNavigation).toHaveCount(group === "projects" ? 1 : 0);
@@ -60,7 +57,7 @@ async function assertNavigationHierarchy(page: Page, index: number) {
 }
 
 async function nextScene(page: Page, index: number) {
-  await page.locator("[data-scene-next]").click();
+  await page.locator(`#${sceneIds[index - 1]} .scene-bottom a[data-scene-link]`).click();
   await assertActiveScene(page, index);
 }
 
@@ -155,7 +152,6 @@ async function assertProjectLayout(page: Page, index: number) {
     const heading = panel.querySelector<HTMLElement>("h2")!;
     const action = panel.querySelector<HTMLAnchorElement>('a[target="_blank"]')!;
     const footer = scene.querySelector<HTMLElement>(".scene-bottom")!;
-    const bar = document.querySelector<HTMLElement>(".journey-bar")!;
     const art = scene.querySelector<HTMLElement>(".scene-art")!;
     const copy = panel.querySelector<HTMLElement>(".scene-copy")!;
     const copyBox = copy.getBoundingClientRect();
@@ -165,7 +161,7 @@ async function assertProjectLayout(page: Page, index: number) {
     const overlaps: string[] = [];
     for (const [name, element] of [["project selection", switcher], ["project heading", heading], ["project action", action]] as const) {
       const box = element.getBoundingClientRect();
-      for (const [obstacleName, obstacle] of [["chapter footer", footer], ["fixed journey bar", bar]] as const) {
+      for (const [obstacleName, obstacle] of [["chapter footer", footer]] as const) {
         const obstacleBox = obstacle.getBoundingClientRect();
         if (Math.min(box.right, obstacleBox.right) - Math.max(box.left, obstacleBox.left) > 1 &&
             Math.min(box.bottom, obstacleBox.bottom) - Math.max(box.top, obstacleBox.top) > 1) {
@@ -273,7 +269,6 @@ test("paging moves through the game world while its background and document stay
   await page.goto("/");
   await waitForJourney(page);
   await assertActiveScene(page, 0);
-  await expect(page.locator("[data-scene-prev]")).toBeDisabled();
   const background = page.locator("[data-world-background]");
   await expect(background).toHaveCSS("position", "fixed");
   const initialBackground = await background.boundingBox();
@@ -301,9 +296,7 @@ test("paging moves through the game world while its background and document stay
   for (let index = 1; index < sceneIds.length; index += 1) {
     await nextScene(page, index);
   }
-  await expect(page.locator("[data-scene-next]")).toBeDisabled();
-  await expect(page.locator("[data-scene-prev]")).toBeEnabled();
-  await page.locator("[data-scene-prev]").click();
+  await page.keyboard.press("ArrowUp");
   await assertActiveScene(page, 3);
   expect(await background.boundingBox()).toEqual(initialBackground);
 });
@@ -331,8 +324,8 @@ test("rapid chapter changes never paint an outgoing chapter footer", async ({ pa
         painted,
       });
     };
-    for (const direction of ["next", "prev", "next", "next", "prev"]) {
-      document.querySelector<HTMLButtonElement>(`[data-scene-${direction}]`)!.click();
+    for (const key of ["ArrowDown", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp"]) {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
       readFrame();
       const until = performance.now() + 80;
       while (performance.now() < until) {
@@ -387,8 +380,8 @@ for (const viewport of [
       };
       const baseline = readFrame();
       const samples: ReturnType<typeof readFrame>[] = [];
-      for (const direction of ["next", "next", "prev", "prev", "next", "next", "prev"]) {
-        document.querySelector<HTMLButtonElement>(`[data-scene-${direction}]`)!.click();
+      for (const key of ["ArrowDown", "ArrowDown", "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowUp"]) {
+        document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
         samples.push(readFrame());
         const until = performance.now() + 80;
         while (performance.now() < until) {
@@ -413,12 +406,13 @@ for (const viewport of [
 
     // Leaving the project collection still changes the whole scene; returning
     // restores the same frame rather than leaving an overlay above other stages.
-    const stages = page.getByRole("navigation", { name: "章节导航", exact: true });
-    for (const [name, index] of [["共建", 4], ["简介", 0], ["项目", 1]] as const) {
-      await stages.getByRole("link", { name, exact: true }).click();
+    for (const [key, index] of [["End", 4], ["Home", 0]] as const) {
+      await page.keyboard.press(key);
       await assertActiveScene(page, index);
-      await expect(page.locator(".scene.is-active .project-panel")).toHaveCount(index === 1 ? 1 : 0);
+      await expect(page.locator(".scene.is-active .project-panel")).toHaveCount(0);
     }
+    await nextScene(page, 1);
+    await expect(page.locator(".scene.is-active .project-panel")).toHaveCount(1);
     await expect.poll(async () => {
       const box = await page.locator(".scene.is-active .project-panel").boundingBox();
       if (!box) return Infinity;
@@ -528,9 +522,13 @@ test("macro stages and project selection stay distinct through deep links, keybo
   await page.goForward();
   await assertActiveScene(page, 1);
 
-  const stages = page.getByRole("navigation", { name: "章节导航", exact: true });
-  for (const [name, index] of [["共建", 4], ["简介", 0], ["项目", 1]] as const) {
-    await stages.getByRole("link", { name, exact: true }).focus();
+  const header = page.getByRole("navigation", { name: "主要导航", exact: true });
+  for (const [link, index] of [
+    [header.getByRole("link", { name: "参与项目", exact: true }), 4],
+    [page.locator("#join").getByRole("link", { name: "回到首页" }), 0],
+    [header.getByRole("link", { name: "开源项目", exact: true }), 1],
+  ] as const) {
+    await link.focus();
     await page.keyboard.press("Enter");
     await assertActiveScene(page, index);
   }
@@ -651,7 +649,8 @@ test("touch swipes change scenes, respect tall content, and reset scroll when re
   );
   await swipeUp(page, "projects");
   await assertActiveScene(page, 2);
-  await page.locator("[data-scene-prev]").click();
+  await page.locator("#coopanion").getByRole("navigation", { name: "项目选择", exact: true })
+    .getByRole("link", { name: "Cortico", exact: true }).click();
   await assertActiveScene(page, 1);
   await expect(projectScene).toHaveJSProperty("scrollTop", 0);
 });
@@ -734,8 +733,6 @@ test("without JavaScript, all scenes, anchors and project links remain available
     const nav = page.getByRole("navigation", { name: "主要导航" });
     await expect(nav).toBeVisible();
     await expect(page.locator('[aria-controls="main-nav"]')).toBeHidden();
-    await expect(page.locator("[data-motion-toggle]")).toBeHidden();
-    await expect(page.locator("[data-scene-next]")).toBeHidden();
     await assertNoOverflow(page);
     await nav.locator('a[data-scene-link][href$="#projects"]').click();
     await expect(page).toHaveURL(/\/#projects$/);
@@ -911,8 +908,8 @@ test("the shared traveler changes gear in sequence and respects interrupted navi
     const samples: ReturnType<typeof capture>[] = [];
     const destinations: number[] = [];
     for (const step of changes) {
-      if (step.action === "home") document.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
-      else document.querySelector<HTMLButtonElement>(`[data-scene-${step.action}]`)!.click();
+      const key = { next: "ArrowDown", prev: "ArrowUp", home: "Home" }[step.action];
+      document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
       samples.push(capture());
       destinations.push(samples.at(-1)!.index);
       const deadline = performance.now() + step.observeFor;
@@ -973,25 +970,19 @@ test("the shared traveler changes gear in sequence and respects interrupted navi
   await assertGear(0);
   expect(interrupted.samples.at(-1)!.gears.filter((gear) => gear.visible)).toEqual([]);
 
-  await page.locator("[data-motion-toggle]").click();
-  await expect(page.locator("html")).toHaveAttribute("data-paused", "true");
-  for (const mode of ["paused", "reduced"] as const) {
-    if (mode === "reduced") {
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.goto("/");
-      await waitForJourney(page);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  await waitForJourney(page);
+  for (let index = 0; index < sceneIds.length; index += 1) {
+    if (index) {
+      const immediate = await recordChanges([{ action: "next", observeFor: 0 }]);
+      const shown = immediate.samples[0]!.gears.filter((gear) => gear.visible);
+      expect(shown.map((gear) => gear.variant), "reduced motion switches directly to the target gear").toEqual([variants[index]]);
+      expect(shown[0]!.opacity).toBe(1);
     }
-    for (let index = 0; index < sceneIds.length; index += 1) {
-      if (index) {
-        const immediate = await recordChanges([{ action: "next", observeFor: 0 }]);
-        const shown = immediate.samples[0]!.gears.filter((gear) => gear.visible);
-        expect(shown.map((gear) => gear.variant), `${mode} switches directly to the target gear`).toEqual([variants[index]]);
-        expect(shown[0]!.opacity).toBe(1);
-      }
-      await assertActiveScene(page, index);
-      await assertGear(index);
-      await assertNoRunningActorAnimation();
-    }
+    await assertActiveScene(page, index);
+    await assertGear(index);
+    await assertNoRunningActorAnimation();
   }
 });
 
@@ -999,7 +990,6 @@ test("chapter hops settle, replace interrupted motion and clear when motion is d
   await page.goto("/#projects");
   await waitForJourney(page);
   const travel = page.locator("[data-traveler-travel]");
-  const toggle = page.locator("[data-motion-toggle]");
   const readTravel = () => travel.evaluate((element) => {
     const transform = getComputedStyle(element).transform;
     const matrix = transform === "none" ? new DOMMatrixReadOnly() : new DOMMatrixReadOnly(transform);
@@ -1020,17 +1010,17 @@ test("chapter hops settle, replace interrupted motion and clear when motion is d
   ).toBe(true);
 
   await assertRest();
-  await page.locator("[data-scene-next]").click();
+  await page.keyboard.press("ArrowDown");
   await assertMoving();
   await assertRest();
   await assertActiveScene(page, 2);
   await assertTravelerAtAnchor(page);
 
-  // Exercise real chapter controls within a few frames, before any hop can finish.
+  // Page with the keyboard within a few frames, before any hop can finish.
   const reversals = await page.evaluate(async () => {
     const samples: { scene: string | undefined; animations: number }[] = [];
-    for (const direction of ["prev", "next", "prev"]) {
-      document.querySelector<HTMLButtonElement>(`[data-scene-${direction}]`)!.click();
+    for (const key of ["ArrowUp", "ArrowDown", "ArrowUp"]) {
+      document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
       await new Promise(requestAnimationFrame);
       await new Promise(requestAnimationFrame);
       samples.push({
@@ -1043,68 +1033,23 @@ test("chapter hops settle, replace interrupted motion and clear when motion is d
   expect(reversals.map((sample) => sample.scene)).toEqual(["1", "2", "1"]);
   expect(reversals.map((sample) => sample.animations), "a reversal must replace the previous hop, never stack poses").toEqual([1, 1, 1]);
   await assertMoving();
-  await toggle.click();
-  await expect(page.locator("html")).toHaveAttribute("data-paused", "true");
-  await assertRest();
-  await assertNoTransientPixels();
-
-  await toggle.click();
-  await expect(page.locator("html")).toHaveAttribute("data-paused", "false");
-  await page.locator("[data-scene-next]").click();
-  await assertMoving();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await assertRest();
   await assertNoTransientPixels();
-  await nextScene(page, 3);
+  await nextScene(page, 2);
   await assertRest();
 
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  await page.locator("[data-scene-prev]").click();
+  await page.keyboard.press("ArrowUp");
   await assertMoving();
   // The app uses this root state for its background-page playback policy.
   await page.evaluate(() => { document.documentElement.dataset.documentHidden = "true"; });
   await assertRest();
   await assertNoTransientPixels();
-  await nextScene(page, 3);
+  await nextScene(page, 2);
   await assertRest();
   await page.evaluate(() => { document.documentElement.dataset.documentHidden = "false"; });
   await assertRest();
-});
-
-test("the motion control stops the world and resumes its automatic animation", async ({
-  page,
-}) => {
-  await page.goto("/");
-  await waitForJourney(page);
-  const world = page.locator('[data-pixel-world="hero"]');
-  const toggle = page.locator("[data-motion-toggle]");
-  const runningAnimations = () =>
-    page.locator('[data-pixel-world="hero"], [data-traveler]').evaluateAll(
-      (elements) => elements.flatMap((element) =>
-        element.getAnimations({ subtree: true }),
-      ).filter((animation) => animation.playState === "running").length,
-    );
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
-  await expect.poll(runningAnimations).toBeGreaterThan(0);
-  await toggle.focus();
-  await page.keyboard.press("Enter");
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
-  await expect(page.locator("html")).toHaveAttribute("data-paused", "true");
-  await expect(page.locator("[data-motion-label]")).toHaveText("继续动画");
-  await expect(page.locator("html")).toHaveAttribute("data-intro", "done");
-  await expectPainted(page.locator(".hero-copy"), true);
-  await expectPainted(world.locator('[data-story-part="friend"]'), true);
-  await expect.poll(runningAnimations).toBe(0);
-  const pose = () => page.locator("[data-traveler] .traveler-sprite").boundingBox();
-  const pausedPose = await pose();
-  // Verify the paused visual remains stationary over time.
-  await page.waitForTimeout(350);
-  expect(await pose()).toEqual(pausedPose);
-  await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
-  await expect(page.locator("html")).toHaveAttribute("data-paused", "false");
-  await expect(page.locator("[data-motion-label]")).toHaveText("暂停动画");
-  await expect.poll(runningAnimations).toBeGreaterThan(0);
 });
 
 test("reduced motion shows complete worlds without automatic movement", async ({

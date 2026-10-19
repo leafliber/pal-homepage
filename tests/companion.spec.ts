@@ -91,7 +91,7 @@ test("inactivity resets on input and the shy message is limited to one per quiet
   await expect(bubble).toBeHidden();
 });
 
-test("home wandering stays close to the island and stops on navigation, pause and reduced motion", async ({ page }) => {
+test("home wandering stays close to the island and stops on navigation and reduced motion", async ({ page }) => {
   await startCompanion(page);
   const companion = page.locator("[data-traveler-companion]");
   const traveler = page.locator("[data-traveler]");
@@ -125,15 +125,6 @@ test("home wandering stays close to the island and stops on navigation, pause an
 
   await page.keyboard.press("Home");
   await page.clock.runFor(1_000);
-  await startWalking(page);
-  await page.locator("[data-motion-toggle]").click();
-  await expect(page.locator("html")).toHaveAttribute("data-paused", "true");
-  await noWalk();
-  await page.clock.runFor(60_000);
-  await expect(bubble).toBeHidden();
-  await noWalk();
-
-  await page.locator("[data-motion-toggle]").click();
   await startWalking(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await noWalk();
