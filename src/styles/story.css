@@ -317,7 +317,6 @@ html[data-journey="ready"]
 /* The opening starts with silence, then eyes. Useful content arrives promptly
    while the remaining visual story continues; keyboard navigation stays usable. */
 html[data-intro="playing"] .site-header,
-html[data-intro="playing"] .journey-bar,
 html[data-intro="playing"] .world-grid,
 html[data-intro="playing"] .background-cross,
 html[data-intro="playing"] .hero-scene .scene-bottom {
@@ -328,11 +327,6 @@ html[data-intro="playing"]:is(
     [data-intro-phase="wake"]
   )
   .site-header,
-html[data-intro="playing"]:is(
-    [data-intro-phase="blank"],
-    [data-intro-phase="wake"]
-  )
-  .journey-bar,
 html[data-intro="playing"]:is(
     [data-intro-phase="blank"],
     [data-intro-phase="wake"],
@@ -430,7 +424,7 @@ html[data-intro="playing"]:is(
     [data-intro-phase="blank"],
     [data-intro-phase="wake"]
   )
-  :is(.site-header, .journey-bar):focus-within,
+  .site-header:focus-within,
 html[data-intro="playing"] .hero-copy:focus-within {
   opacity: 1 !important;
 }
